@@ -5,7 +5,7 @@ export const companyKnowledge = {
   status: "ACTIVE",
   plan: "DEMO",
   timezone: "America/Denver",
-  defaultLanguage: "auto",
+  defaultLanguage: "en",
   businessType:
     "Framing, general finish carpentry, installation, interior ceiling paneling, interior and exterior finishes, complete remodeling, and subcontractor support services.",
   mission:
@@ -14,7 +14,7 @@ export const companyKnowledge = {
     "Serve Jackson, Wyoming, and nearby communities with professional interior and exterior improvement services.",
   contact: {
     phone: "307-249-7650",
-    email: "usepresion@gmail.com",
+    email: "jesusgarciallccompany@gmail.com",
     address: "115068 US 89, Alpine, WY 83128",
     preferredMethod: "Phone, email, or NOVA lead capture form",
   },

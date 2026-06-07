@@ -1513,7 +1513,7 @@ function App() {
       return savedLanguage;
     }
 
-    return navigator.language.toLowerCase().startsWith("es") ? "es" : "en";
+    return "en";
   });
   const [chatOpen, setChatOpen] = useState(false);
   const [step, setStep] = useState(0);
