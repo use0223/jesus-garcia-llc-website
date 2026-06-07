@@ -1508,7 +1508,8 @@ const normalizeUserMessageForLeadData = (message, currentLeadData = emptyNovaLea
 
 function App() {
   const [language, setLanguage] = useState(() => {
-    const savedLanguage = localStorage.getItem("preferredLanguage");
+    const savedLanguage =
+      localStorage.getItem("language") || localStorage.getItem("preferredLanguage");
     if (savedLanguage === "es" || savedLanguage === "en") {
       return savedLanguage;
     }
@@ -1597,9 +1598,13 @@ function App() {
   const isNovaBasicModeActive =
     !quoteMode && (!novaSmartModeEnabled || novaSmartFallbackActive);
 
-  const toggleLanguage = () => {
-    const nextLanguage = language === "en" ? "es" : "en";
+  const selectLanguage = (nextLanguage) => {
+    if (nextLanguage !== "en" && nextLanguage !== "es") {
+      return;
+    }
+
     setLanguage(nextLanguage);
+    localStorage.setItem("language", nextLanguage);
     localStorage.setItem("preferredLanguage", nextLanguage);
   };
 
@@ -2636,11 +2641,28 @@ function App() {
         </nav>
 
         <div className="headerActions">
-          <button className="languageButton" onClick={toggleLanguage}>
-            🌐 EN / ES
-          </button>
+          <div className="languageSelector" role="group" aria-label="Language selector">
+            <button
+              className={`languageButton ${language === "en" ? "active" : ""}`}
+              type="button"
+              onClick={() => selectLanguage("en")}
+              aria-label="View page in English"
+              aria-pressed={language === "en"}
+            >
+              EN
+            </button>
+            <button
+              className={`languageButton ${language === "es" ? "active" : ""}`}
+              type="button"
+              onClick={() => selectLanguage("es")}
+              aria-label="Ver la página en español"
+              aria-pressed={language === "es"}
+            >
+              ES
+            </button>
+          </div>
 
-          <button className="headerButton" onClick={openNovaWidget}>
+          <button className="headerButton" type="button" onClick={openNovaWidget}>
             {t("talkToNova")}
           </button>
         </div>
