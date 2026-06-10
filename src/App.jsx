@@ -1515,6 +1515,7 @@ function App() {
 
     return "en";
   });
+  const [activeServiceCard, setActiveServiceCard] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({
@@ -2688,12 +2689,29 @@ function App() {
         </div>
 
         <div className="grid">
-          {text.serviceCards.map(({ title, description, mediaImages }) => (
-            <div className="card" key={title}>
+          {text.serviceCards.map(({ title, description, mediaImages }, index) => (
+            <div
+              className={`card ${activeServiceCard === index ? "active" : ""}`}
+              key={title}
+              role="button"
+              tabIndex={0}
+              aria-expanded={activeServiceCard === index}
+              onClick={() =>
+                setActiveServiceCard((currentIndex) => (currentIndex === index ? null : index))
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setActiveServiceCard((currentIndex) =>
+                    currentIndex === index ? null : index,
+                  );
+                }
+              }}
+            >
               <ServiceImageSlider mediaImages={mediaImages} alt={title} />
               <div className="serviceCardContent">
                 <h3>{title}</h3>
-                <p>{description}</p>
+                <p className="serviceDescription">{description}</p>
               </div>
             </div>
           ))}

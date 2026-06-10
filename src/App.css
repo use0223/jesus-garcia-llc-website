@@ -423,6 +423,7 @@ nav a:hover {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  cursor: pointer;
 }
 
 .serviceCardMedia {
@@ -489,9 +490,14 @@ nav a:hover {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(12, 10, 8, 0.04), rgba(12, 10, 8, 0.7)),
-    linear-gradient(90deg, rgba(12, 10, 8, 0.56), rgba(12, 10, 8, 0.12));
+    linear-gradient(
+      180deg,
+      transparent 55%,
+      rgba(12, 10, 8, 0.12) 72%,
+      rgba(12, 10, 8, 0.72) 100%
+    );
   pointer-events: none;
+  transition: background 0.3s ease;
 }
 
 .card::after {
@@ -508,16 +514,19 @@ nav a:hover {
   position: relative;
   z-index: 1;
   width: 100%;
-  padding: 14px 16px;
+  padding: 10px 14px;
   border: 1px solid rgba(212, 160, 90, 0.45);
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.64);
+  background: rgba(0, 0, 0, 0.52);
   backdrop-filter: blur(3px);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  transition:
+    padding 0.3s ease,
+    background 0.3s ease;
 }
 
 .card h3 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: clamp(1.2rem, 1.55vw, 1.5rem);
   color: #fffaf3;
   position: relative;
@@ -534,6 +543,42 @@ nav a:hover {
   position: relative;
   z-index: 1;
   text-shadow: 0 5px 16px rgba(0, 0, 0, 0.52);
+}
+
+.serviceDescription {
+  max-height: 0;
+  margin-top: 0 !important;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(6px);
+  transition:
+    max-height 0.35s ease,
+    margin-top 0.3s ease,
+    opacity 0.25s ease,
+    transform 0.3s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover::before,
+  .card:focus-visible::before {
+    background:
+      linear-gradient(180deg, rgba(12, 10, 8, 0.04), rgba(12, 10, 8, 0.7)),
+      linear-gradient(90deg, rgba(12, 10, 8, 0.56), rgba(12, 10, 8, 0.12));
+  }
+
+  .card:hover .serviceCardContent,
+  .card:focus-visible .serviceCardContent {
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.64);
+  }
+
+  .card:hover .serviceDescription,
+  .card:focus-visible .serviceDescription {
+    max-height: 9em;
+    margin-top: 8px !important;
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* WORK SECTION - BACKGROUND: JOBSITE / CARPENTRY */
@@ -1765,6 +1810,24 @@ nav a:hover {
 }
 
 @media (max-width: 900px) {
+  .card.active::before {
+    background:
+      linear-gradient(180deg, rgba(12, 10, 8, 0.04), rgba(12, 10, 8, 0.7)),
+      linear-gradient(90deg, rgba(12, 10, 8, 0.56), rgba(12, 10, 8, 0.12));
+  }
+
+  .card.active .serviceCardContent {
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.64);
+  }
+
+  .card.active .serviceDescription {
+    max-height: 9em;
+    margin-top: 8px !important;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   .header {
     flex-direction: column;
     gap: 14px;
