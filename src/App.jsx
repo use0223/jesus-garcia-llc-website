@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { companyKnowledge } from "./config/companyKnowledge";
 
@@ -632,6 +632,8 @@ const translations = {
       "Framing, general finish carpentry, installation, interior ceiling paneling, remodeling and subcontractor support",
     footerArea: "Jackson, WY and nearby areas",
     footerNovaCta: "Talk to NOVA",
+    footerAlternativeContact: "Alternative contact: jesusgarciallccompany@gmail.com",
+    footerSendEmail: "Send email",
     novaSubtitle: "Jesús García LLC Project Assistant",
     novaChatPlaceholder: "Write your message to NOVA",
     novaSend: "Send",
@@ -916,6 +918,8 @@ const translations = {
       "Framing, carpintería de acabado general, instalación, revestimiento de cielo interior, remodelación y apoyo a constructoras",
     footerArea: "Jackson, WY y áreas cercanas",
     footerNovaCta: "Hablar con NOVA",
+    footerAlternativeContact: "Contacto alterno: jesusgarciallccompany@gmail.com",
+    footerSendEmail: "Enviar correo",
     novaSubtitle: "Asistente de proyectos de Jesús García LLC",
     novaChatPlaceholder: "Escribe tu mensaje para NOVA",
     novaSend: "Enviar",
@@ -1243,7 +1247,7 @@ const analyzeOtherReason = (reason) => {
   };
 };
 
-const NOVA_SMART_WEBHOOK_URL = "https://usedig.app.n8n.cloud/webhook/nova-chat";
+const NOVA_SMART_WEBHOOK_URL = "https://usedig.app.n8n.cloud/webhook/jg-nova-chat";
 const NOVA_BASIC_WEBHOOK_URL = "https://usedig.app.n8n.cloud/webhook/nova-basic-lead";
 const NOVA_SCHEDULING_WEBHOOK_URL = "https://usedig.app.n8n.cloud/webhook/nova-scheduling";
 // TODO: Connect the real NOVA rating logger webhook when it is available.
@@ -1506,6 +1510,24 @@ const normalizeUserMessageForLeadData = (message, currentLeadData = emptyNovaLea
   return nextLeadData;
 };
 
+const normalizeNovaLeadDataFields = (leadData = {}) => {
+  const normalizedLeadData = {
+    ...leadData,
+    projectLocation: leadData.projectLocation || leadData.project_location,
+    projectDescription: leadData.projectDescription || leadData.project_description,
+    leadStatus: leadData.leadStatus || leadData.lead_status,
+    nextAction: leadData.nextAction || leadData.next_action,
+    clientType: leadData.clientType || leadData.client_type,
+    desiredStartDate: leadData.desiredStartDate || leadData.desired_start_date,
+  };
+
+  return Object.fromEntries(
+    Object.entries(normalizedLeadData).filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    ),
+  );
+};
+
 function App() {
   const [language, setLanguage] = useState(() => {
     const savedLanguage = localStorage.getItem("preferredLanguage");
@@ -1582,6 +1604,7 @@ function App() {
   const [ratingPromptActive, setRatingPromptActive] = useState(false);
   const [ratingThanksVisible, setRatingThanksVisible] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const novaAutoCloseTimerRef = useRef(null);
 
   const text = translations[language];
   const t = (key) => text[key];
@@ -1597,6 +1620,23 @@ function App() {
     novaSmartModeEnabled && !novaSmartFallbackActive && !quoteMode;
   const isNovaBasicModeActive =
     !quoteMode && (!novaSmartModeEnabled || novaSmartFallbackActive);
+
+  const cancelNovaAutoClose = () => {
+    if (novaAutoCloseTimerRef.current) {
+      window.clearTimeout(novaAutoCloseTimerRef.current);
+      novaAutoCloseTimerRef.current = null;
+    }
+  };
+
+  const scheduleNovaAutoClose = () => {
+    cancelNovaAutoClose();
+    novaAutoCloseTimerRef.current = window.setTimeout(() => {
+      setChatOpen(false);
+      novaAutoCloseTimerRef.current = null;
+    }, 5000);
+  };
+
+  useEffect(() => () => cancelNovaAutoClose(), []);
 
   const toggleLanguage = () => {
     const nextLanguage = language === "en" ? "es" : "en";
@@ -1642,6 +1682,7 @@ function App() {
   };
 
   const resetNovaSmartSession = () => {
+    cancelNovaAutoClose();
     const nextSessionId = createNewNovaSessionId();
 
     setNovaSessionId(nextSessionId);
@@ -1683,6 +1724,7 @@ function App() {
   };
 
   const startNewNovaChat = () => {
+    cancelNovaAutoClose();
     resetNovaSmartSession();
   };
 
@@ -1765,16 +1807,49 @@ function App() {
     }, 1000);
   };
 
-  const getSchedulingLeadData = (leadData = novaLeadData) => ({
-    name: leadData.name || "",
-    phone: leadData.phone || "",
-    email: leadData.email || "",
-    projectLocation: leadData.projectLocation || "",
-    clientType: leadData.clientType || "",
-    service: leadData.service || "",
-    projectDescription: leadData.projectDescription || "",
-    desiredStartDate: leadData.desiredStartDate || "",
-  });
+  const getLeadDataFromConversationHistory = (history, baseLeadData = {}) =>
+    history.reduce((currentLeadData, message) => {
+      const metadata = message.metadata || {};
+      const metadataLeadData = normalizeNovaLeadDataFields(metadata.leadData || {});
+      const nextLeadData = {
+        ...currentLeadData,
+        ...metadataLeadData,
+        ...(metadata.detectedService ? { service: metadata.detectedService } : {}),
+        ...(metadata.leadStatus ? { leadStatus: metadata.leadStatus } : {}),
+        ...(metadata.nextAction ? { nextAction: metadata.nextAction } : {}),
+      };
+
+      return message.role === "user"
+        ? normalizeUserMessageForLeadData(message.content || "", nextLeadData)
+        : nextLeadData;
+    }, baseLeadData);
+
+  const getSchedulingLeadData = (
+    leadData = novaLeadData,
+    schedulingConversationHistory = conversationHistory,
+  ) => {
+    const projectLocation = leadData.projectLocation || leadData.project_location || "";
+    const projectDescription =
+      leadData.projectDescription || leadData.project_description || "";
+    const leadStatus = leadData.leadStatus || leadData.lead_status || "";
+    const nextAction = leadData.nextAction || leadData.next_action || "";
+
+    return {
+      name: leadData.name || "",
+      phone: leadData.phone || "",
+      email: leadData.email || "",
+      projectLocation,
+      project_location: projectLocation,
+      clientType: leadData.clientType || leadData.client_type || "",
+      service: leadData.service || "",
+      projectDescription,
+      project_description: projectDescription,
+      desiredStartDate: leadData.desiredStartDate || leadData.desired_start_date || "",
+      lead_status: leadStatus,
+      next_action: nextAction,
+      conversationHistory: schedulingConversationHistory,
+    };
+  };
 
   const formatSlotLabel = (slot) => {
     const start = new Date(slot.start);
@@ -1804,7 +1879,12 @@ function App() {
     });
   };
 
-  const sendToNovaScheduling = async ({ schedulingMode, selectedSlot, leadData }) => {
+  const sendToNovaScheduling = async ({
+    schedulingMode,
+    selectedSlot,
+    leadData,
+    conversationHistory: schedulingConversationHistory = conversationHistory,
+  }) => {
     const { dateFrom, dateTo } = getSchedulingWindow();
     const response = await fetch(NOVA_SCHEDULING_WEBHOOK_URL, {
       method: "POST",
@@ -1829,7 +1909,8 @@ function App() {
         source: "NOVA_CHAT_SCHEDULING",
         pageUrl: window.location.href,
         userAgent: navigator.userAgent,
-        leadData: getSchedulingLeadData(leadData),
+        leadData: getSchedulingLeadData(leadData, schedulingConversationHistory),
+        conversationHistory: schedulingConversationHistory,
       }),
     });
 
@@ -1847,6 +1928,7 @@ function App() {
       const schedulingResponse = await sendToNovaScheduling({
         schedulingMode: "GET_SLOTS",
         leadData,
+        conversationHistory: baseHistory,
       });
       const slots = getBookingOptions(schedulingResponse).slice(0, 6);
       const normalizedSchedulingReply = removePrematureClosingText(
@@ -1886,6 +1968,7 @@ function App() {
   };
 
   const bookSchedulingSlot = async (slot) => {
+    cancelNovaAutoClose();
     const selectedTime = formatSlotTimeLabel(slot);
     const selectionMessage = {
       role: "user",
@@ -1901,10 +1984,16 @@ function App() {
     setSchedulingLoading(true);
 
     try {
+      const storedLeadData = readStorageJson(NOVA_LEAD_DATA_KEY, {});
+      const latestLeadData = getLeadDataFromConversationHistory(historyWithSelection, {
+        ...novaLeadData,
+        ...normalizeNovaLeadDataFields(storedLeadData),
+      });
       const schedulingResponse = await sendToNovaScheduling({
         schedulingMode: "BOOK_SLOT",
         selectedSlot: slot,
-        leadData: novaLeadData,
+        leadData: latestLeadData,
+        conversationHistory: historyWithSelection,
       });
       const slots = getBookingOptions(schedulingResponse).slice(0, 6);
       const hasReplacementOptions =
@@ -1945,6 +2034,25 @@ function App() {
             },
           ]),
         );
+        updateNovaLeadData({
+          ...latestLeadData,
+          leadStatus: "SCHEDULED",
+          lead_status: "SCHEDULED",
+          nextAction: "END_CHAT_AFTER_BOOKING",
+          next_action: "END_CHAT_AFTER_BOOKING",
+          appointment_scheduled: true,
+          booking_confirmed: true,
+          needsScheduling: false,
+          selectedSlot: {
+            start: slot.start,
+            end: slot.end,
+          },
+          scheduledAppointment: {
+            start: slot.start,
+            end: slot.end,
+            response: schedulingResponse,
+          },
+        });
       }
 
       setSchedulingSlots(schedulingResponse.mode === "SLOT_UNAVAILABLE" ? slots : []);
@@ -2021,7 +2129,17 @@ function App() {
       return;
     }
 
-    const leadDataForRequest = normalizeUserMessageForLeadData(trimmedMessage, novaLeadData);
+    cancelNovaAutoClose();
+
+    const storedLeadData = readStorageJson(NOVA_LEAD_DATA_KEY, {});
+    const baseLeadDataForRequest = {
+      ...novaLeadData,
+      ...normalizeNovaLeadDataFields(storedLeadData),
+    };
+    const leadDataForRequest = {
+      ...baseLeadDataForRequest,
+      ...normalizeUserMessageForLeadData(trimmedMessage, baseLeadDataForRequest),
+    };
     updateNovaLeadData(leadDataForRequest);
 
     const userMessage = {
@@ -2074,6 +2192,40 @@ function App() {
       });
       saveConversationHistory(nextHistory);
       requestSchedulingSlots(leadDataForRequest, nextMessages, nextHistory);
+      return;
+    }
+
+    const normalizedCloseMessage = normalizeText(trimmedMessage);
+    const hasScheduledAppointment =
+      leadDataForRequest.appointment_scheduled === true ||
+      leadDataForRequest.booking_confirmed === true ||
+      leadDataForRequest.leadStatus === "SCHEDULED" ||
+      leadDataForRequest.lead_status === "SCHEDULED";
+    const isPostBookingCloseRequest =
+      isExplicitCloseRequest(trimmedMessage) ||
+      normalizedCloseMessage === "no thank you" ||
+      normalizedCloseMessage === "no thanks" ||
+      normalizedCloseMessage === "nothing else" ||
+      normalizedCloseMessage === "that is all" ||
+      normalizedCloseMessage === "that's all";
+
+    if (hasScheduledAppointment && isPostBookingCloseRequest) {
+      const closingMessage = {
+        role: "assistant",
+        content: `You're welcome${leadDataForRequest.name ? `, ${leadDataForRequest.name}` : ""}. Your call is scheduled. Thank you for contacting Jesús García LLC.`,
+        createdAt: new Date().toISOString(),
+        metadata: {
+          uiAction: "show_rating",
+          conversationComplete: true,
+        },
+      };
+      const nextHistory = [...conversationHistory, userMessage, closingMessage];
+
+      saveConversationHistory(nextHistory);
+      saveNovaMessages([...nextMessages, closingMessage]);
+      setNovaChatEnded(true);
+      setRatingPromptActive(true);
+      setSchedulingSlots([]);
       return;
     }
 
@@ -2130,8 +2282,19 @@ function App() {
       }
 
       const novaResponse = await response.json();
+      const responseLeadData = novaResponse.leadData
+        ? normalizeNovaLeadDataFields(novaResponse.leadData)
+        : {};
+      const latestLeadDataForRequest = {
+        ...leadDataForRequest,
+        ...responseLeadData,
+      };
+
+      if (novaResponse.leadData) {
+        updateNovaLeadData(latestLeadDataForRequest);
+      }
       const waitingForPreference =
-        hasCompleteContactDetails(leadDataForRequest) &&
+        hasCompleteContactDetails(latestLeadDataForRequest) &&
         responseRequestsContactPreference(novaResponse);
       const normalizedResponse = waitingForPreference
         ? {
@@ -2157,7 +2320,7 @@ function App() {
           (entry) => entry.sessionId === novaSessionId,
         );
       const reply = waitingForPreference
-        ? formatNovaMessage("contactPreferencePrompt", { name: leadDataForRequest.name })
+        ? formatNovaMessage("contactPreferencePrompt", { name: latestLeadDataForRequest.name })
         : responseBookingOptions.length > 0
           ? t("bookingOptionsCleanReply")
           : normalizeNovaIdentityText(novaResponse.reply || novaResponse.ratingPrompt) ||
@@ -2190,17 +2353,25 @@ function App() {
         isExplicitCloseRequest(trimmedMessage) &&
         (normalizedResponse.nextAction === "END_CHAT" ||
           normalizedResponse.conversationComplete === true);
+      const shouldAutoCloseChat =
+        normalizedResponse.uiAction === "end_chat" ||
+        normalizedResponse.conversationComplete === true ||
+        normalizedResponse.nextAction === "END_CHAT";
 
       saveConversationHistory(nextHistory);
       saveNovaMessages(nextVisibleMessages);
       setSchedulingSlots(responseBookingOptions);
+
+      if (shouldAutoCloseChat) {
+        scheduleNovaAutoClose();
+      }
 
       if (
         !waitingForPreference &&
         responseBookingOptions.length === 0 &&
         (normalizedResponse.needsScheduling || normalizedResponse.nextAction === "SCHEDULE_CALL")
       ) {
-        requestSchedulingSlots(leadDataForRequest, nextVisibleMessages, nextHistory);
+        requestSchedulingSlots(latestLeadDataForRequest, nextVisibleMessages, nextHistory);
       }
 
       if (shouldShowRating) {
@@ -2788,6 +2959,12 @@ function App() {
           <strong>Jesús García LLC</strong>
           <p>{t("footerServices")}</p>
           <p>{t("footerArea")}</p>
+          <div className="footerAlternativeContact">
+            <span>{t("footerAlternativeContact")}</span>
+            <a href="mailto:jesusgarciallccompany@gmail.com">
+              {t("footerSendEmail")}
+            </a>
+          </div>
         </div>
 
         <div>
@@ -2907,7 +3084,10 @@ function App() {
                     <input
                       placeholder={t("novaChatPlaceholder")}
                       value={novaInput}
-                      onChange={(event) => setNovaInput(event.target.value)}
+                      onChange={(event) => {
+                        cancelNovaAutoClose();
+                        setNovaInput(event.target.value);
+                      }}
                       disabled={novaLoading || novaChatEnded || schedulingLoading}
                     />
                     <button

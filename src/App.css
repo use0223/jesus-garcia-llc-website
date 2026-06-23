@@ -1026,6 +1026,29 @@ nav a:hover {
   margin: 8px 0 0;
 }
 
+.footerAlternativeContact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 12px;
+}
+
+.footerAlternativeContact a {
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: inherit;
+  font-size: 0.82em;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.footerAlternativeContact a:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .footerNovaButton {
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 999px;
