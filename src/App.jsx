@@ -2318,13 +2318,40 @@ function App() {
         hasBookingOptions ||
         normalizedResponse.needsScheduling ||
         normalizedResponse.nextAction === "SCHEDULE_CALL";
+      const existingRatings = readStorageJson(NOVA_CHAT_RATINGS_KEY, []);
+      const hasExistingRating = existingRatings.some(
+        (entry) => entry.sessionId === novaSessionId,
+      );
+
+      const storedScheduledCallsForRating = readStorageJson("novaScheduledCalls", []);
+      const hasStoredScheduledCallForRating =
+        Array.isArray(storedScheduledCallsForRating) &&
+        storedScheduledCallsForRating.some((entry) => entry.sessionId === novaSessionId);
+
+      const hasPostBookingState =
+        hasStoredScheduledCallForRating ||
+        latestLeadDataForRequest.appointment_scheduled === true ||
+        latestLeadDataForRequest.booking_confirmed === true ||
+        latestLeadDataForRequest.leadStatus === "SCHEDULED" ||
+        latestLeadDataForRequest.lead_status === "SCHEDULED";
+
+      const responseEndsConversation =
+        normalizedResponse.conversationComplete === true ||
+        normalizedResponse.nextAction === "END_CHAT" ||
+        normalizedResponse.uiAction === "end_chat";
+
+      const shouldForcePostBookingRating =
+        !isSchedulingResponse &&
+        hasPostBookingState &&
+        (isExplicitCloseRequest(trimmedMessage) || responseEndsConversation) &&
+        !hasExistingRating;
+
       const shouldShowRating =
         !isSchedulingResponse &&
         (normalizedResponse.showRating === true ||
-          normalizedResponse.uiAction === "SHOW_RATING_AND_AUTOCLOSE") &&
-        !readStorageJson(NOVA_CHAT_RATINGS_KEY, []).some(
-          (entry) => entry.sessionId === novaSessionId,
-        );
+          normalizedResponse.uiAction === "SHOW_RATING_AND_AUTOCLOSE" ||
+          shouldForcePostBookingRating) &&
+        !hasExistingRating;
       const reply = waitingForPreference
         ? formatNovaMessage("contactPreferencePrompt", { name: latestLeadDataForRequest.name })
         : responseBookingOptions.length > 0
