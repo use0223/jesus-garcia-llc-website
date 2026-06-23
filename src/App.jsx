@@ -649,7 +649,7 @@ const translations = {
     startNewChat: "Start new chat",
     endChat: "End chat",
     schedulingSuccess:
-      "Your call has been scheduled. Thank you for contacting Jesús García LLC. Our team will review your project and follow up at the selected time. Is there anything else I can help you with?",
+      "Your call has been scheduled. Thank you for contacting Jesús García LLC. Our team will review your project and follow up at the selected time.",
     contactPreferencePrompt:
       "Thanks, {name}. I have your contact details now. Would you prefer the team to contact you as soon as possible, or would you like to choose a specific time for a call?",
     urgentContactConfirmed:
@@ -935,7 +935,7 @@ const translations = {
     startNewChat: "Iniciar nuevo chat",
     endChat: "Finalizar chat",
     schedulingSuccess:
-      "Tu llamada ha sido programada. Gracias por contactar a Jesús García LLC. Nuestro equipo revisará tu proyecto y te dará seguimiento en el horario seleccionado. ¿Deseas que te ayude con algo más?",
+      "Tu llamada ha sido agendada. Gracias por contactar a Jesús García LLC. El equipo revisará tu proyecto y dará seguimiento en el horario seleccionado.",
     contactPreferencePrompt:
       "Gracias, {name}. Ya tengo tus datos de contacto. ¿Prefieres que el equipo te contacte a la brevedad o quieres elegir una hora específica para una llamada?",
     urgentContactConfirmed:
@@ -2062,6 +2062,14 @@ function App() {
       saveNovaMessages(
         appendAssistantMessageIfUnique(messagesWithSelection, bookingMessage),
       );
+      if (schedulingResponse.mode === "APPOINTMENT_SCHEDULED" && schedulingResponse.success) {
+        setNovaChatEnded(true);
+        setRatingPromptActive(false);
+        setSchedulingSlots([]);
+        setNovaLoading(false);
+        setSchedulingLoading(false);
+        scheduleNovaAutoClose();
+      }
     } catch {
       const errorMessage = {
         role: "assistant",
