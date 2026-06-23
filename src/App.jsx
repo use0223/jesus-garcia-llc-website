@@ -1995,20 +1995,29 @@ function App() {
         leadData: latestLeadData,
         conversationHistory: historyWithSelection,
       });
+      const normalizedSchedulingResponseReply = normalizeText(schedulingResponse.reply || "");
+      const isAppointmentScheduled =
+        schedulingResponse.mode === "APPOINTMENT_SCHEDULED" ||
+        schedulingResponse.leadStatus === "SCHEDULED" ||
+        schedulingResponse.lead_status === "SCHEDULED" ||
+        schedulingResponse.nextAction === "END_CHAT_AFTER_BOOKING" ||
+        schedulingResponse.next_action === "END_CHAT_AFTER_BOOKING" ||
+        normalizedSchedulingResponseReply.includes("your call has been scheduled") ||
+        normalizedSchedulingResponseReply.includes("tu llamada ha sido agendada");
       const slots = getBookingOptions(schedulingResponse).slice(0, 6);
       const hasReplacementOptions =
         schedulingResponse.mode === "SLOT_UNAVAILABLE" && slots.length > 0;
       const bookingMessage = {
         role: "assistant",
         content:
-          schedulingResponse.mode === "APPOINTMENT_SCHEDULED" && schedulingResponse.success
+          isAppointmentScheduled
             ? t("schedulingSuccess")
             : hasReplacementOptions
               ? t("bookingOptionsCleanReply")
               : removeBookingTimesFromReply(normalizeNovaIdentityText(schedulingResponse.reply)) ||
                 t("anythingElse"),
         translationKey:
-          schedulingResponse.mode === "APPOINTMENT_SCHEDULED" && schedulingResponse.success
+          isAppointmentScheduled
             ? "schedulingSuccess"
             : "",
         createdAt: new Date().toISOString(),
@@ -2021,7 +2030,7 @@ function App() {
       };
       const storedBookings = readStorageJson("novaScheduledCalls", []);
 
-      if (schedulingResponse.mode === "APPOINTMENT_SCHEDULED" && schedulingResponse.success) {
+      if (isAppointmentScheduled) {
         localStorage.setItem(
           "novaScheduledCalls",
           JSON.stringify([
@@ -2062,7 +2071,7 @@ function App() {
       saveNovaMessages(
         appendAssistantMessageIfUnique(messagesWithSelection, bookingMessage),
       );
-      if (schedulingResponse.mode === "APPOINTMENT_SCHEDULED" && schedulingResponse.success) {
+      if (isAppointmentScheduled) {
         setNovaChatEnded(true);
         setRatingPromptActive(false);
         setSchedulingSlots([]);
