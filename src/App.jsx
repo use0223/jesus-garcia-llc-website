@@ -2196,7 +2196,13 @@ function App() {
     }
 
     const normalizedCloseMessage = normalizeText(trimmedMessage);
+    const storedScheduledCalls = readStorageJson("novaScheduledCalls", []);
+    const hasStoredScheduledCall =
+      Array.isArray(storedScheduledCalls) &&
+      storedScheduledCalls.some((entry) => entry.sessionId === novaSessionId);
+
     const hasScheduledAppointment =
+      hasStoredScheduledCall ||
       leadDataForRequest.appointment_scheduled === true ||
       leadDataForRequest.booking_confirmed === true ||
       leadDataForRequest.leadStatus === "SCHEDULED" ||
