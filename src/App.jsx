@@ -1260,12 +1260,246 @@ const NOVA_MESSAGES_KEY = `novaChatMessages_${NOVA_CLIENT_ID}`;
 const NOVA_LEAD_DATA_KEY = `novaLeadData_${NOVA_CLIENT_ID}`;
 const NOVA_ENDED_CHATS_KEY = `novaEndedChats_${NOVA_CLIENT_ID}`;
 const NOVA_CHAT_RATINGS_KEY = `novaChatRatings_${NOVA_CLIENT_ID}`;
+const NOVA_META_TRACKING_KEY = `novaMetaTracking_${NOVA_CLIENT_ID}`;
 const LEGACY_NOVA_STORAGE_KEYS = [
   "novaSessionId",
   "novaConversationHistory",
   "novaChatMessages",
   "novaLeadData",
 ];
+
+const getCurrentNovaSessionId = () => {
+  if (typeof localStorage === "undefined") {
+    return "";
+  }
+
+  return localStorage.getItem(NOVA_SESSION_KEY) || "";
+};
+
+const getMetaUtmParams = () => {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+
+  return {
+    utm_source: searchParams.get("utm_source") || "",
+    utm_medium: searchParams.get("utm_medium") || "",
+    utm_campaign: searchParams.get("utm_campaign") || "",
+    utm_content: searchParams.get("utm_content") || "",
+  };
+};
+
+const getSafeMetaCommonParams = (options = {}) => ({
+  session_id: options.sessionId || getCurrentNovaSessionId(),
+  page_path: typeof window !== "undefined" ? window.location.pathname : "",
+  ...getMetaUtmParams(),
+  timestamp: new Date().toISOString(),
+  event_source: options.eventSource || "nova_frontend",
+});
+
+const blockedMetaParamKeys = new Set([
+  "name",
+  "phone",
+  "email",
+  "projectLocation",
+  "project_location",
+  "projectDescription",
+  "project_description",
+  "message",
+  "content",
+  "userMessage",
+  "address",
+]);
+
+const sanitizeMetaParams = (params = {}) =>
+  Object.fromEntries(
+    Object.entries(params).filter(([key]) => !blockedMetaParamKeys.has(key)),
+  );
+
+const trackMetaEvent = (eventName, params = {}, options = {}) => {
+  const safeParams = sanitizeMetaParams({
+    ...getSafeMetaCommonParams(options),
+    ...params,
+  });
+
+  if (typeof window === "undefined" || typeof window.fbq !== "function") {
+    if (import.meta.env.DEV) {
+      console.warn("[Meta Pixel Event skipped]", eventName, safeParams);
+    }
+
+    return false;
+  }
+
+  if (import.meta.env.DEV) {
+    console.log("[Meta Pixel Event]", eventName, safeParams);
+  }
+
+  window.fbq("track", eventName, safeParams);
+  return true;
+};
+
+const trackMetaCustomEvent = (eventName, params = {}, options = {}) => {
+  const safeParams = sanitizeMetaParams({
+    ...getSafeMetaCommonParams(options),
+    ...params,
+  });
+
+  if (typeof window === "undefined" || typeof window.fbq !== "function") {
+    if (import.meta.env.DEV) {
+      console.warn("[Meta Pixel Event skipped]", eventName, safeParams);
+    }
+
+    return false;
+  }
+
+  if (import.meta.env.DEV) {
+    console.log("[Meta Pixel Event]", eventName, safeParams);
+  }
+
+  window.fbq("trackCustom", eventName, safeParams);
+  return true;
+};
+
+const getTrackedMetaKeys = () => {
+  try {
+    const rawKeys = sessionStorage.getItem(NOVA_META_TRACKING_KEY) || "{}";
+
+    return JSON.parse(rawKeys);
+  } catch {
+    return {};
+  }
+};
+
+const saveTrackedMetaKeys = (trackedKeys) => {
+  try {
+    sessionStorage.setItem(NOVA_META_TRACKING_KEY, JSON.stringify(trackedKeys));
+  } catch {
+    // Tracking should never block the NOVA chat flow.
+  }
+};
+
+const trackMetaOnce = (key, eventType, eventName, params = {}, options = {}) => {
+  const sessionId = options.sessionId || getCurrentNovaSessionId();
+  const scopedKey = `${sessionId || "anonymous"}:${key}`;
+  const trackedKeys = getTrackedMetaKeys();
+
+  if (trackedKeys[scopedKey]) {
+    return false;
+  }
+
+  const didTrack =
+    eventType === "standard"
+      ? trackMetaEvent(eventName, params, { ...options, sessionId })
+      : trackMetaCustomEvent(eventName, params, { ...options, sessionId });
+
+  if (didTrack) {
+    trackedKeys[scopedKey] = true;
+    saveTrackedMetaKeys(trackedKeys);
+  }
+
+  return didTrack;
+};
+
+const normalizeMetaStatus = (value) =>
+  String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const getMetaLeadStatus = (leadData = {}, response = {}) =>
+  response.leadStatus ||
+  response.lead_status ||
+  leadData.leadStatus ||
+  leadData.lead_status ||
+  "";
+
+const getMetaNextAction = (leadData = {}, response = {}) =>
+  response.nextAction ||
+  response.next_action ||
+  leadData.nextAction ||
+  leadData.next_action ||
+  "";
+
+const hasCapturedNovaLead = (leadData = {}) =>
+  Boolean(
+    leadData.name?.trim() &&
+      (leadData.service?.trim() || leadData.projectDescription?.trim()) &&
+      (leadData.phone?.trim() || leadData.email?.trim()),
+  );
+
+const getSafeServiceCategory = (...values) => {
+  const matchedService = values
+    .filter((value) => typeof value === "string")
+    .map((value) => normalizeText(value))
+    .filter(Boolean)
+    .map((value) =>
+      supportedServiceKeywords.find(([keyword]) =>
+        value.includes(normalizeText(keyword)),
+      )?.[1],
+    )
+    .find(Boolean);
+
+  return matchedService ? normalizeMetaStatus(matchedService) : "unknown";
+};
+
+const getSafeNovaLeadMetaParams = (leadData = {}, response = {}) => ({
+  lead_status: getMetaLeadStatus(leadData, response),
+  next_action: getMetaNextAction(leadData, response),
+  service_category: getSafeServiceCategory(leadData.service, response.detectedService),
+  has_name: Boolean(leadData.name?.trim()),
+  has_phone: Boolean(leadData.phone?.trim()),
+  has_email: Boolean(leadData.email?.trim()),
+  has_service: Boolean(leadData.service?.trim()),
+  has_project_location: Boolean(
+    leadData.projectLocation?.trim() || leadData.project_location?.trim(),
+  ),
+});
+
+const qualifiedNovaLeadStatuses = new Set([
+  "HOT_LEAD",
+  "READY_TO_SCHEDULE",
+  "SCHEDULE_CALL",
+  "BUILDER_LEAD",
+  "PRIORITY_BUILDER",
+  "RETURNING_CLIENT",
+]);
+
+const lowIntentNovaLeadStatuses = new Set([
+  "COLD_LEAD",
+  "CURIOUS_VISITOR",
+  "CURIOUS_NOT_QUALIFIED",
+  "UNQUALIFIED",
+  "NO_PROJECT",
+]);
+
+const notificationSentFields = [
+  "notification_sent",
+  "notificationSent",
+  "owner_notified",
+  "ownerNotified",
+  "email_sent",
+  "emailSent",
+];
+
+const hasOwnerNotificationSignal = (response = {}) =>
+  notificationSentFields.some(
+    (field) => response[field] === true || response.data?.[field] === true,
+  );
+
+const hasAppointmentConfirmedSignal = (response = {}) =>
+  response.booking_confirmed === true ||
+  response.bookingConfirmed === true ||
+  response.appointment_scheduled === true ||
+  response.appointmentScheduled === true ||
+  response.success === true ||
+  response.data?.booking_confirmed === true ||
+  response.data?.bookingConfirmed === true ||
+  response.data?.appointment_scheduled === true ||
+  response.data?.appointmentScheduled === true ||
+  response.data?.success === true;
 
 const sendNovaRating = async (ratingPayload) => {
   if (!NOVA_RATING_WEBHOOK_URL) {
@@ -1621,6 +1855,106 @@ function App() {
   const isNovaBasicModeActive =
     !quoteMode && (!novaSmartModeEnabled || novaSmartFallbackActive);
 
+  const trackNovaLeadProgress = (leadData = novaLeadData, response = {}) => {
+    const safeParams = getSafeNovaLeadMetaParams(leadData, response);
+    const normalizedLeadStatus = normalizeMetaStatus(safeParams.lead_status);
+    const normalizedNextAction = normalizeMetaStatus(safeParams.next_action);
+
+    if (safeParams.lead_status) {
+      trackMetaOnce(
+        `classified:${normalizedLeadStatus}:${normalizedNextAction}`,
+        "custom",
+        "JG_NOVA_CLASSIFIED",
+        {
+          lead_status: safeParams.lead_status,
+          next_action: safeParams.next_action,
+          has_name: safeParams.has_name,
+          has_phone: safeParams.has_phone,
+          has_email: safeParams.has_email,
+          has_service: safeParams.has_service,
+          has_project_location: safeParams.has_project_location,
+        },
+        { sessionId: novaSessionId },
+      );
+    }
+
+    if (hasCapturedNovaLead(leadData)) {
+      trackMetaOnce("lead_captured_standard", "standard", "Lead", {
+        lead_status: safeParams.lead_status,
+        next_action: safeParams.next_action,
+        service_category: safeParams.service_category,
+        has_phone: safeParams.has_phone,
+        has_email: safeParams.has_email,
+      }, { sessionId: novaSessionId });
+      trackMetaOnce("lead_captured_custom", "custom", "JG_NOVA_LEAD_CAPTURED", {
+        lead_status: safeParams.lead_status,
+        next_action: safeParams.next_action,
+        service_category: safeParams.service_category,
+        has_phone: safeParams.has_phone,
+        has_email: safeParams.has_email,
+      }, { sessionId: novaSessionId });
+    }
+
+    if (
+      qualifiedNovaLeadStatuses.has(normalizedLeadStatus) ||
+      qualifiedNovaLeadStatuses.has(normalizedNextAction)
+    ) {
+      trackMetaOnce("qualified_lead", "custom", "JG_NOVA_QUALIFIED_LEAD", {
+        lead_status: safeParams.lead_status,
+        next_action: safeParams.next_action,
+      }, { sessionId: novaSessionId });
+    }
+
+    if (
+      lowIntentNovaLeadStatuses.has(normalizedLeadStatus) ||
+      lowIntentNovaLeadStatuses.has(normalizedNextAction)
+    ) {
+      trackMetaOnce(
+        `low_intent:${normalizedLeadStatus}:${normalizedNextAction}`,
+        "custom",
+        "JG_NOVA_DISQUALIFIED_OR_LOW_INTENT",
+        {
+          lead_status: safeParams.lead_status,
+          reason_code: normalizeMetaStatus(response.reasonCode || response.lowIntentReasonCode),
+          next_action: safeParams.next_action,
+        },
+        { sessionId: novaSessionId },
+      );
+    }
+  };
+
+  const hasScheduledAppointmentForCurrentSession = () => {
+    const storedScheduledCalls = readStorageJson("novaScheduledCalls", []);
+    const hasStoredScheduledCall =
+      Array.isArray(storedScheduledCalls) &&
+      storedScheduledCalls.some((entry) => entry.sessionId === novaSessionId);
+
+    return (
+      hasStoredScheduledCall ||
+      novaLeadData.appointment_scheduled === true ||
+      novaLeadData.booking_confirmed === true ||
+      novaLeadData.leadStatus === "SCHEDULED" ||
+      novaLeadData.lead_status === "SCHEDULED"
+    );
+  };
+
+  const trackNovaCompletedAndClosed = () => {
+    if (!hasScheduledAppointmentForCurrentSession()) {
+      return;
+    }
+
+    trackMetaOnce(
+      "completed_and_closed",
+      "custom",
+      "JG_NOVA_COMPLETED_AND_CLOSED",
+      {
+        lead_status: novaLeadData.leadStatus || novaLeadData.lead_status || "SCHEDULED",
+        next_action: novaLeadData.nextAction || novaLeadData.next_action || "END_CHAT_AFTER_BOOKING",
+      },
+      { sessionId: novaSessionId },
+    );
+  };
+
   const cancelNovaAutoClose = () => {
     if (novaAutoCloseTimerRef.current) {
       window.clearTimeout(novaAutoCloseTimerRef.current);
@@ -1701,17 +2035,23 @@ function App() {
     setRatingPromptActive(false);
     setRatingThanksVisible(false);
     setRatingSubmitted(false);
+    return nextSessionId;
   };
 
   const openNovaWidget = () => {
+    let currentSessionId = novaSessionId;
+
     if (novaChatEnded) {
-      resetNovaSmartSession();
+      currentSessionId = resetNovaSmartSession();
     }
 
+    trackMetaOnce("chat_open", "custom", "JG_NOVA_CHAT_OPEN", {}, { sessionId: currentSessionId });
     setChatOpen(true);
   };
 
   const closeNovaWidget = () => {
+    trackNovaCompletedAndClosed();
+
     if (ratingPromptActive) {
       resetNovaSmartSession();
     }
@@ -1729,6 +2069,7 @@ function App() {
   };
 
   const endNovaChat = () => {
+    trackNovaCompletedAndClosed();
     setRatingPromptActive(false);
     setNovaChatEnded(true);
     saveNovaMessages([]);
@@ -1777,6 +2118,7 @@ function App() {
       ]),
     );
     void sendNovaRating(ratingPayload);
+    trackNovaCompletedAndClosed();
     setRatingSubmitted(true);
     setRatingPromptActive(false);
     setRatingThanksVisible(true);
@@ -1923,6 +2265,17 @@ function App() {
 
   const requestSchedulingSlots = async (leadData, baseMessages = novaMessages, baseHistory = conversationHistory) => {
     setSchedulingLoading(true);
+    trackMetaOnce(
+      "scheduling_started",
+      "custom",
+      "JG_NOVA_SCHEDULING_STARTED",
+      {
+        lead_status: leadData.leadStatus || leadData.lead_status || "",
+        next_action: "SCHEDULE_CALL",
+        scheduling_mode: "GET_SLOTS",
+      },
+      { sessionId: novaSessionId },
+    );
 
     try {
       const schedulingResponse = await sendToNovaScheduling({
@@ -1970,6 +2323,10 @@ function App() {
   const bookSchedulingSlot = async (slot) => {
     cancelNovaAutoClose();
     const selectedTime = formatSlotTimeLabel(slot);
+    const selectedDate = new Date(slot.start);
+    const selectedDay = Number.isNaN(selectedDate.getTime())
+      ? ""
+      : selectedDate.toISOString().slice(0, 10);
     const selectionMessage = {
       role: "user",
       content: formatNovaMessage("bookingSelection", { time: selectedTime }),
@@ -1982,6 +2339,17 @@ function App() {
     saveNovaMessages(messagesWithSelection);
     saveConversationHistory(historyWithSelection);
     setSchedulingLoading(true);
+    trackMetaOnce(
+      `slot_selected:${slot.start || slot.label || selectedTime}`,
+      "custom",
+      "JG_NOVA_SLOT_SELECTED",
+      {
+        scheduling_mode: "BOOK_SLOT",
+        selected_day: selectedDay,
+        selected_time_window: selectedTime,
+      },
+      { sessionId: novaSessionId },
+    );
 
     try {
       const storedLeadData = readStorageJson(NOVA_LEAD_DATA_KEY, {});
@@ -2031,6 +2399,8 @@ function App() {
       const storedBookings = readStorageJson("novaScheduledCalls", []);
 
       if (isAppointmentScheduled) {
+        const hasAppointmentConfirmation = hasAppointmentConfirmedSignal(schedulingResponse);
+
         localStorage.setItem(
           "novaScheduledCalls",
           JSON.stringify([
@@ -2062,6 +2432,30 @@ function App() {
             response: schedulingResponse,
           },
         });
+        if (hasAppointmentConfirmation) {
+          trackMetaOnce("call_scheduled_standard", "standard", "Schedule", {
+            lead_status: "SCHEDULED",
+            service_category: getSafeServiceCategory(latestLeadData.service),
+            scheduling_mode: "BOOK_SLOT",
+            appointment_confirmed: true,
+          }, { sessionId: novaSessionId });
+          trackMetaOnce("call_scheduled_custom", "custom", "JG_NOVA_CALL_SCHEDULED", {
+            lead_status: "SCHEDULED",
+            service_category: getSafeServiceCategory(latestLeadData.service),
+            scheduling_mode: "BOOK_SLOT",
+            appointment_confirmed: true,
+          }, { sessionId: novaSessionId });
+        }
+
+        if (hasOwnerNotificationSignal(schedulingResponse)) {
+          trackMetaOnce("owner_notified", "custom", "JG_NOVA_OWNER_NOTIFIED", {
+            lead_status: "SCHEDULED",
+            service_category: getSafeServiceCategory(latestLeadData.service),
+            scheduling_mode: "BOOK_SLOT",
+          }, { sessionId: novaSessionId });
+        }
+        // TODO: If backend does not expose notification_sent/owner_notified/email_sent,
+        // keep this event off until that safe boolean is returned.
       }
 
       setSchedulingSlots(schedulingResponse.mode === "SLOT_UNAVAILABLE" ? slots : []);
@@ -2147,6 +2541,8 @@ function App() {
     }
 
     cancelNovaAutoClose();
+    trackMetaOnce("first_message_standard", "standard", "Contact", {}, { sessionId: novaSessionId });
+    trackMetaOnce("first_message_custom", "custom", "JG_NOVA_FIRST_MESSAGE", {}, { sessionId: novaSessionId });
 
     const storedLeadData = readStorageJson(NOVA_LEAD_DATA_KEY, {});
     const baseLeadDataForRequest = {
@@ -2158,6 +2554,7 @@ function App() {
       ...normalizeUserMessageForLeadData(trimmedMessage, baseLeadDataForRequest),
     };
     updateNovaLeadData(leadDataForRequest);
+    trackNovaLeadProgress(leadDataForRequest);
 
     const userMessage = {
       role: "user",
@@ -2249,6 +2646,7 @@ function App() {
       setNovaChatEnded(true);
       setRatingPromptActive(true);
       setSchedulingSlots([]);
+      trackNovaCompletedAndClosed();
       return;
     }
 
@@ -2327,6 +2725,14 @@ function App() {
             needsScheduling: false,
           }
         : novaResponse;
+      const latestTrackedLeadData = {
+        ...latestLeadDataForRequest,
+        leadStatus: getMetaLeadStatus(latestLeadDataForRequest, normalizedResponse),
+        lead_status: getMetaLeadStatus(latestLeadDataForRequest, normalizedResponse),
+        nextAction: getMetaNextAction(latestLeadDataForRequest, normalizedResponse),
+        next_action: getMetaNextAction(latestLeadDataForRequest, normalizedResponse),
+      };
+      trackNovaLeadProgress(latestTrackedLeadData, normalizedResponse);
       const responseBookingOptions = getBookingOptions(novaResponse).slice(0, 6);
       const hasBookingOptions =
         responseBookingOptions.length > 0 ||
@@ -2335,6 +2741,19 @@ function App() {
         hasBookingOptions ||
         normalizedResponse.needsScheduling ||
         normalizedResponse.nextAction === "SCHEDULE_CALL";
+      if (isSchedulingResponse) {
+        trackMetaOnce(
+          "scheduling_started",
+          "custom",
+          "JG_NOVA_SCHEDULING_STARTED",
+          {
+            lead_status: latestTrackedLeadData.leadStatus || latestTrackedLeadData.lead_status || "",
+            next_action: normalizedResponse.nextAction || "",
+            scheduling_mode: hasBookingOptions ? "SHOW_BOOKING_OPTIONS" : "GET_SLOTS",
+          },
+          { sessionId: novaSessionId },
+        );
+      }
       const existingRatings = readStorageJson(NOVA_CHAT_RATINGS_KEY, []);
       const hasExistingRating = existingRatings.some(
         (entry) => entry.sessionId === novaSessionId,
@@ -2741,6 +3160,15 @@ function App() {
         return;
       }
 
+      trackNovaLeadProgress(
+        {
+          ...leadData,
+          service: leadData.serviceLabel || leadData.service,
+          leadStatus: basicResponse.leadStatus || leadData.leadStatus,
+          lead_status: basicResponse.leadStatus || leadData.leadStatus,
+        },
+        basicResponse,
+      );
       const storedLeads = JSON.parse(localStorage.getItem("novaLeads") || "[]");
       localStorage.setItem("novaLeads", JSON.stringify([...storedLeads, leadWithBasicResponse]));
       setSubmittedLead(leadWithBasicResponse);
@@ -2823,6 +3251,7 @@ function App() {
       isPreviousClient: leadData.isPreviousClient,
       previousClientReference: leadData.previousClientReference,
     });
+    trackNovaLeadProgress(leadData);
     setSubmittedLead(leadData);
     setLeadSubmitted(true);
     setLeadError("");
