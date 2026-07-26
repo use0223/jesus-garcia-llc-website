@@ -1640,6 +1640,25 @@ const isExplicitCloseRequest = (message) =>
     message,
   );
 
+const isDefinitiveNovaClose = (response = {}) => {
+  const frontend = response.frontend || {};
+
+  return (
+    (response.conversation_state || response.conversationState) === "CONVERSATION_COMPLETED" &&
+    (response.next_action || response.nextAction) === "CHAT_CLOSED" &&
+    (response.workflow_action || response.workflowAction) === "CHAT_CLOSED" &&
+    (frontend.widget_action || frontend.widgetAction) === "AUTO_CLOSE"
+  );
+};
+
+const getNovaAutoCloseDelayMs = (response = {}) => {
+  const delayMs = response.frontend?.auto_close_delay_ms ?? response.frontend?.autoCloseDelayMs;
+
+  return typeof delayMs === "number" && Number.isFinite(delayMs) && delayMs >= 0
+    ? delayMs
+    : 10000;
+};
+
 const isUrgentContactPreference = (message) =>
   /\b(?:a la brevedad|lo antes posible|que me contacten|contactenme|contáctenme|urgent|as soon as possible|contact me)\b/i.test(
     message,
@@ -1938,12 +1957,12 @@ function App() {
     }
   };
 
-  const scheduleNovaAutoClose = () => {
+  const scheduleNovaAutoClose = (delayMs = 10000) => {
     cancelNovaAutoClose();
     novaAutoCloseTimerRef.current = window.setTimeout(() => {
       setChatOpen(false);
       novaAutoCloseTimerRef.current = null;
-    }, 5000);
+    }, delayMs);
   };
 
   useEffect(() => () => cancelNovaAutoClose(), []);
@@ -2015,27 +2034,12 @@ function App() {
   };
 
   const openNovaWidget = () => {
-    let currentSessionId = novaSessionId;
-
-    if (novaChatEnded) {
-      currentSessionId = resetNovaSmartSession();
-    }
-
-    trackMetaOnce("chat_open", "custom", "JG_NOVA_CHAT_OPEN", {}, { sessionId: currentSessionId });
+    trackMetaOnce("chat_open", "custom", "JG_NOVA_CHAT_OPEN", {}, { sessionId: novaSessionId });
     setChatOpen(true);
   };
 
   const closeNovaWidget = () => {
     trackNovaCompletedAndClosed();
-
-    if (ratingPromptActive) {
-      resetNovaSmartSession();
-    }
-
-    if (novaChatEnded) {
-      resetNovaSmartSession();
-    }
-
     setChatOpen(false);
   };
 
@@ -2047,8 +2051,6 @@ function App() {
   const endNovaChat = () => {
     trackNovaCompletedAndClosed();
     setRatingPromptActive(false);
-    setNovaChatEnded(true);
-    saveNovaMessages([]);
     setNovaInput("");
     setNovaLoading(false);
     setLeadError("");
@@ -2089,6 +2091,7 @@ function App() {
     setRatingPromptActive(false);
     setRatingThanksVisible(true);
     saveNovaMessages([
+      ...novaMessages,
       {
         role: "assistant",
         content: t("ratingThanks"),
@@ -2098,9 +2101,6 @@ function App() {
     ]);
 
     window.setTimeout(() => {
-      saveConversationHistory([]);
-      saveNovaMessages([]);
-      updateNovaLeadData(emptyNovaLeadData);
       setNovaInput("");
       setNovaChatEnded(true);
       setNovaLoading(false);
@@ -2194,6 +2194,10 @@ function App() {
     conversationHistory: schedulingConversationHistory = conversationHistory,
   }) => {
     const { dateFrom, dateTo } = getSchedulingWindow();
+    const currentSessionId =
+      novaSessionId ||
+      getCurrentNovaSessionId() ||
+      createNovaSessionId();
     const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
       method: "POST",
       headers: {
@@ -2202,7 +2206,8 @@ function App() {
       body: JSON.stringify({
         clientId: NOVA_CLIENT_ID,
         client_id: NOVA_CLIENT_ID,
-        sessionId: novaSessionId,
+        sessionId: currentSessionId,
+        session_id: currentSessionId,
         language: currentLanguage,
         requestType: "SCHEDULING_REQUEST",
         schedulingMode,
@@ -2431,13 +2436,13 @@ function App() {
       saveNovaMessages(
         appendAssistantMessageIfUnique(messagesWithSelection, bookingMessage),
       );
-      if (isAppointmentScheduled) {
+      if (isDefinitiveNovaClose(schedulingResponse)) {
         setNovaChatEnded(true);
-        setRatingPromptActive(false);
+        setRatingPromptActive(schedulingResponse.showRating === true);
         setSchedulingSlots([]);
         setNovaLoading(false);
         setSchedulingLoading(false);
-        scheduleNovaAutoClose();
+        scheduleNovaAutoClose(getNovaAutoCloseDelayMs(schedulingResponse));
       }
     } catch {
       const errorMessage = {
@@ -2461,6 +2466,10 @@ function App() {
     console.log("NOVA mode:", novaSmartModeEnabled ? "SMART" : "BASIC");
     console.log("NOVA engine URL:", NOVA_FAST_CHAT_ENGINE_URL);
 
+    const currentSessionId =
+      novaSessionId ||
+      getCurrentNovaSessionId() ||
+      createNovaSessionId();
     const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
       method: "POST",
       headers: {
@@ -2469,7 +2478,8 @@ function App() {
       body: JSON.stringify({
         clientId: NOVA_CLIENT_ID,
         client_id: NOVA_CLIENT_ID,
-        sessionId: novaSessionId,
+        sessionId: currentSessionId,
+        session_id: currentSessionId,
         language: currentLanguage,
         requestType: "BASIC_LEAD_CAPTURE",
         source: "NOVA_BASIC_MODE",
@@ -2573,56 +2583,6 @@ function App() {
       return;
     }
 
-    const normalizedCloseMessage = normalizeText(trimmedMessage);
-    const storedScheduledCalls = readStorageJson("novaScheduledCalls", []);
-    const hasStoredScheduledCall =
-      Array.isArray(storedScheduledCalls) &&
-      storedScheduledCalls.some((entry) => entry.sessionId === novaSessionId);
-
-    const hasScheduledAppointment =
-      hasStoredScheduledCall ||
-      leadDataForRequest.appointment_scheduled === true ||
-      leadDataForRequest.booking_confirmed === true ||
-      leadDataForRequest.leadStatus === "SCHEDULED" ||
-      leadDataForRequest.lead_status === "SCHEDULED";
-    const isPostBookingCloseRequest =
-      isExplicitCloseRequest(trimmedMessage) ||
-      normalizedCloseMessage === "no thank you" ||
-      normalizedCloseMessage === "no thanks" ||
-      normalizedCloseMessage === "nothing else" ||
-      normalizedCloseMessage === "that is all" ||
-      normalizedCloseMessage === "that's all";
-
-    if (hasScheduledAppointment && isPostBookingCloseRequest) {
-      const closingMessage = {
-        role: "assistant",
-        content: `You're welcome${leadDataForRequest.name ? `, ${leadDataForRequest.name}` : ""}. Your call is scheduled. Thank you for contacting Jesús García LLC.`,
-        createdAt: new Date().toISOString(),
-        metadata: {
-          uiAction: "show_rating",
-          conversationComplete: true,
-        },
-      };
-      const nextHistory = [...conversationHistory, userMessage, closingMessage];
-
-      saveConversationHistory(nextHistory);
-      saveNovaMessages([...nextMessages, closingMessage]);
-      setNovaChatEnded(true);
-      setRatingPromptActive(true);
-      setSchedulingSlots([]);
-      trackNovaCompletedAndClosed();
-      return;
-    }
-
-    if (isExplicitCloseRequest(trimmedMessage)) {
-      saveConversationHistory([...conversationHistory, userMessage]);
-      saveNovaMessages(nextMessages);
-      setNovaChatEnded(true);
-      setRatingPromptActive(true);
-      setSchedulingSlots([]);
-      return;
-    }
-
     if (shouldResolveRepeatedLocationLocally) {
       const localAssistantMessage = {
         role: "assistant",
@@ -2643,6 +2603,10 @@ function App() {
       console.log("NOVA mode:", novaSmartModeEnabled ? "SMART" : "BASIC");
       console.log("NOVA engine URL:", NOVA_FAST_CHAT_ENGINE_URL);
 
+      const currentSessionId =
+        novaSessionId ||
+        getCurrentNovaSessionId() ||
+        createNovaSessionId();
       const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
         method: "POST",
         headers: {
@@ -2651,7 +2615,8 @@ function App() {
         body: JSON.stringify({
           message: trimmedMessage,
           language: currentLanguage,
-          sessionId: novaSessionId,
+          sessionId: currentSessionId,
+          session_id: currentSessionId,
           clientId: NOVA_CLIENT_ID,
           client_id: NOVA_CLIENT_ID,
           requestType: "NORMAL_CHAT",
@@ -2720,35 +2685,12 @@ function App() {
       const hasExistingRating = existingRatings.some(
         (entry) => entry.sessionId === novaSessionId,
       );
-
-      const storedScheduledCallsForRating = readStorageJson("novaScheduledCalls", []);
-      const hasStoredScheduledCallForRating =
-        Array.isArray(storedScheduledCallsForRating) &&
-        storedScheduledCallsForRating.some((entry) => entry.sessionId === novaSessionId);
-
-      const hasPostBookingState =
-        hasStoredScheduledCallForRating ||
-        latestLeadDataForRequest.appointment_scheduled === true ||
-        latestLeadDataForRequest.booking_confirmed === true ||
-        latestLeadDataForRequest.leadStatus === "SCHEDULED" ||
-        latestLeadDataForRequest.lead_status === "SCHEDULED";
-
-      const responseEndsConversation =
-        normalizedResponse.conversationComplete === true ||
-        normalizedResponse.nextAction === "END_CHAT" ||
-        normalizedResponse.uiAction === "end_chat";
-
-      const shouldForcePostBookingRating =
-        !isSchedulingResponse &&
-        hasPostBookingState &&
-        (isExplicitCloseRequest(trimmedMessage) || responseEndsConversation) &&
-        !hasExistingRating;
+      const responseIsDefinitiveClose = isDefinitiveNovaClose(normalizedResponse);
 
       const shouldShowRating =
-        !isSchedulingResponse &&
+        responseIsDefinitiveClose &&
         (normalizedResponse.showRating === true ||
-          normalizedResponse.uiAction === "SHOW_RATING_AND_AUTOCLOSE" ||
-          shouldForcePostBookingRating) &&
+          normalizedResponse.uiAction === "SHOW_RATING_AND_AUTOCLOSE") &&
         !hasExistingRating;
       const reply = waitingForPreference
         ? formatNovaMessage("contactPreferencePrompt", { name: latestLeadDataForRequest.name })
@@ -2780,21 +2722,15 @@ function App() {
         nextMessages,
         assistantMessage,
       );
-      const shouldEndChat =
-        isExplicitCloseRequest(trimmedMessage) &&
-        (normalizedResponse.nextAction === "END_CHAT" ||
-          normalizedResponse.conversationComplete === true);
-      const shouldAutoCloseChat =
-        normalizedResponse.uiAction === "end_chat" ||
-        normalizedResponse.conversationComplete === true ||
-        normalizedResponse.nextAction === "END_CHAT";
+      const shouldEndChat = responseIsDefinitiveClose;
+      const shouldAutoCloseChat = responseIsDefinitiveClose;
 
       saveConversationHistory(nextHistory);
       saveNovaMessages(nextVisibleMessages);
       setSchedulingSlots(responseBookingOptions);
 
       if (shouldAutoCloseChat) {
-        scheduleNovaAutoClose();
+        scheduleNovaAutoClose(getNovaAutoCloseDelayMs(normalizedResponse));
       }
 
       if (
