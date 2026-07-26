@@ -753,7 +753,7 @@ const translations = {
     closeNova: "Close NOVA",
     back: "Back",
     laterConnection:
-      "Contact information will be connected later to email, CRM, Google Sheets, or n8n.",
+      "Contact information will be securely routed to the team.",
     statusLabels: {
       "HOT LEAD": "HOT LEAD",
       "WARM LEAD": "WARM LEAD",
@@ -1039,7 +1039,7 @@ const translations = {
     closeNova: "Cerrar NOVA",
     back: "Atras",
     laterConnection:
-      "La informacion de contacto se conectara despues a email, CRM, Google Sheets o n8n.",
+      "La informacion de contacto se enviara de forma segura al equipo.",
     statusLabels: {
       "HOT LEAD": "Prospecto caliente",
       "WARM LEAD": "Prospecto tibio",
@@ -1247,11 +1247,8 @@ const analyzeOtherReason = (reason) => {
   };
 };
 
-const NOVA_SMART_WEBHOOK_URL = "https://usedig.app.n8n.cloud/webhook/jg-nova-chat";
-const NOVA_BASIC_WEBHOOK_URL = "https://usedig.app.n8n.cloud/webhook/nova-basic-lead";
-const NOVA_SCHEDULING_WEBHOOK_URL = "https://usedig.app.n8n.cloud/webhook/nova-scheduling";
-// TODO: Connect the real NOVA rating logger webhook when it is available.
-const NOVA_RATING_WEBHOOK_URL = "";
+const NOVA_FAST_CHAT_ENGINE_URL =
+  "https://usedig.app.n8n.cloud/webhook/fast-chat-engine";
 const NOVA_CLIENT_ID = "jesus-garcia-llc";
 const novaSmartModeEnabled = true;
 const NOVA_SESSION_KEY = "novaSessionId_jesus-garcia-llc";
@@ -1501,27 +1498,6 @@ const hasAppointmentConfirmedSignal = (response = {}) =>
   response.data?.appointmentScheduled === true ||
   response.data?.success === true;
 
-const sendNovaRating = async (ratingPayload) => {
-  if (!NOVA_RATING_WEBHOOK_URL) {
-    return;
-  }
-
-  try {
-    const response = await fetch(NOVA_RATING_WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(ratingPayload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`NOVA rating webhook failed with ${response.status}`);
-    }
-  } catch (error) {
-    console.warn("NOVA rating save failed", error);
-  }
-};
 const LEGACY_NOVA_IDENTITY_MARKERS = [
   ["use", "carpentry"].join(" "),
   ["use", "carpentry", "llc"].join(" "),
@@ -2087,15 +2063,6 @@ function App() {
     }
 
     const ratedAt = new Date().toISOString();
-    const ratingPayload = {
-      clientId: NOVA_CLIENT_ID,
-      sessionId: novaSessionId,
-      rating,
-      language: currentLanguage,
-      source: "nova-widget",
-      ratedAt,
-      conversationHistory,
-    };
     const endedRecord = {
       sessionId: novaSessionId,
       leadData: novaLeadData,
@@ -2117,7 +2084,6 @@ function App() {
         },
       ]),
     );
-    void sendNovaRating(ratingPayload);
     trackNovaCompletedAndClosed();
     setRatingSubmitted(true);
     setRatingPromptActive(false);
@@ -2228,7 +2194,7 @@ function App() {
     conversationHistory: schedulingConversationHistory = conversationHistory,
   }) => {
     const { dateFrom, dateTo } = getSchedulingWindow();
-    const response = await fetch(NOVA_SCHEDULING_WEBHOOK_URL, {
+    const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2257,7 +2223,7 @@ function App() {
     });
 
     if (!response.ok) {
-      throw new Error(`NOVA scheduling webhook failed with ${response.status}`);
+      throw new Error(`NOVA scheduling request failed with ${response.status}`);
     }
 
     return response.json();
@@ -2492,12 +2458,10 @@ function App() {
   };
 
   const sendToNovaBasicLead = async (leadData) => {
-    const webhookUrl = NOVA_BASIC_WEBHOOK_URL;
-
     console.log("NOVA mode:", novaSmartModeEnabled ? "SMART" : "BASIC");
-    console.log("NOVA webhook URL:", webhookUrl);
+    console.log("NOVA engine URL:", NOVA_FAST_CHAT_ENGINE_URL);
 
-    const response = await fetch(webhookUrl, {
+    const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2527,7 +2491,7 @@ function App() {
     });
 
     if (!response.ok) {
-      throw new Error(`NOVA basic webhook failed with ${response.status}`);
+      throw new Error(`NOVA basic request failed with ${response.status}`);
     }
 
     return response.json();
@@ -2676,12 +2640,10 @@ function App() {
     setNovaLoading(true);
 
     try {
-      const webhookUrl = NOVA_SMART_WEBHOOK_URL;
-
       console.log("NOVA mode:", novaSmartModeEnabled ? "SMART" : "BASIC");
-      console.log("NOVA webhook URL:", webhookUrl);
+      console.log("NOVA engine URL:", NOVA_FAST_CHAT_ENGINE_URL);
 
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2699,7 +2661,7 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error(`NOVA webhook failed with ${response.status}`);
+        throw new Error(`NOVA request failed with ${response.status}`);
       }
 
       const novaResponse = await response.json();
@@ -3229,7 +3191,7 @@ function App() {
         preference: quoteForm.callPreference,
         proposedDateTime: "",
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
-        calendarStatus: "PENDING_N8N_CHECK",
+        calendarStatus: "PENDING_SCHEDULING_REVIEW",
         bufferMinutes: 60,
       },
       requiresHumanReview: true,
