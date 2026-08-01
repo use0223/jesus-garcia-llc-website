@@ -1183,6 +1183,37 @@ const removeBookingTimesFromReply = (reply) => {
 const includesAnyKeyword = (text, keywords) =>
   keywords.some((keyword) => text.includes(normalizeText(keyword)));
 
+const detectNovaLanguageFromText = (text = "") => {
+  const normalizedText = normalizeText(text);
+  const spanishPattern =
+    /\b(?:hola|necesito|quiero|me llamo|mi nombre es|cambiar\b.*\bpiso\b.*\bcasa)\b/;
+  const englishPattern =
+    /\b(?:hello|i need|i want|my name is|change\b.*\bfloor\b.*\bhouse)\b/;
+  const isSpanish = spanishPattern.test(normalizedText);
+  const isEnglish = englishPattern.test(normalizedText);
+
+  if (isSpanish === isEnglish) {
+    return null;
+  }
+
+  return isSpanish ? "es" : "en";
+};
+
+const resolveNovaRequestLanguage = ({
+  message = "",
+  conversationHistory = [],
+  fallbackLanguage = "en",
+} = {}) => {
+  const messageLanguage = detectNovaLanguageFromText(message);
+  const recentHistoryText = conversationHistory
+    .slice(-4)
+    .map((historyMessage) => historyMessage.content || "")
+    .join(" ");
+  const historyLanguage = detectNovaLanguageFromText(recentHistoryText);
+
+  return messageLanguage || historyLanguage || (fallbackLanguage === "es" ? "es" : "en");
+};
+
 const hasQuoteUrgency = (quoteForm) => {
   const combinedText = normalizeText(
     `${quoteForm.serviceNeeded} ${quoteForm.projectDescription} ${quoteForm.desiredStartDate} ${quoteForm.callPreference}`,
@@ -2010,6 +2041,13 @@ function App() {
     return nextLeadData;
   };
 
+  const replaceNovaLeadData = (nextLeadData) => {
+    const cleanLeadData = { ...nextLeadData };
+    setNovaLeadData(cleanLeadData);
+    localStorage.setItem(NOVA_LEAD_DATA_KEY, JSON.stringify(cleanLeadData));
+    return cleanLeadData;
+  };
+
   const resetNovaSmartSession = () => {
     cancelNovaAutoClose();
     const nextSessionId = createNewNovaSessionId();
@@ -2017,7 +2055,7 @@ function App() {
     setNovaSessionId(nextSessionId);
     saveConversationHistory([]);
     saveNovaMessages([]);
-    updateNovaLeadData(emptyNovaLeadData);
+    replaceNovaLeadData(emptyNovaLeadData);
     setNovaInput("");
     setNovaLoading(false);
     setNovaChatEnded(false);
@@ -2198,6 +2236,12 @@ function App() {
       novaSessionId ||
       getCurrentNovaSessionId() ||
       createNovaSessionId();
+    const payloadConversationHistory = schedulingConversationHistory;
+    const requestLanguage = resolveNovaRequestLanguage({
+      message: payloadConversationHistory.at(-1)?.content || "",
+      conversationHistory: payloadConversationHistory,
+      fallbackLanguage: currentLanguage,
+    });
     const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
       method: "POST",
       headers: {
@@ -2208,7 +2252,7 @@ function App() {
         client_id: NOVA_CLIENT_ID,
         sessionId: currentSessionId,
         session_id: currentSessionId,
-        language: currentLanguage,
+        language: requestLanguage,
         requestType: "SCHEDULING_REQUEST",
         schedulingMode,
         dateFrom,
@@ -2223,7 +2267,8 @@ function App() {
         pageUrl: window.location.href,
         userAgent: navigator.userAgent,
         leadData: getSchedulingLeadData(leadData, schedulingConversationHistory),
-        conversationHistory: schedulingConversationHistory,
+        conversationHistory: payloadConversationHistory,
+        conversation_history: payloadConversationHistory,
       }),
     });
 
@@ -2470,6 +2515,18 @@ function App() {
       novaSessionId ||
       getCurrentNovaSessionId() ||
       createNovaSessionId();
+    const payloadConversationHistory = conversationHistory;
+    const requestLanguage = resolveNovaRequestLanguage({
+      message: [
+        leadData.projectDescription,
+        leadData.message,
+        leadData.service,
+        leadData.projectLocation,
+        leadData.name,
+      ].join(" "),
+      conversationHistory: payloadConversationHistory,
+      fallbackLanguage: currentLanguage,
+    });
     const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
       method: "POST",
       headers: {
@@ -2480,7 +2537,7 @@ function App() {
         client_id: NOVA_CLIENT_ID,
         sessionId: currentSessionId,
         session_id: currentSessionId,
-        language: currentLanguage,
+        language: requestLanguage,
         requestType: "BASIC_LEAD_CAPTURE",
         source: "NOVA_BASIC_MODE",
         pageUrl: window.location.href,
@@ -2497,6 +2554,8 @@ function App() {
           isPreviousClient: Boolean(leadData.isPreviousClient),
           previousClientReference: leadData.previousClientReference || "",
         },
+        conversationHistory: payloadConversationHistory,
+        conversation_history: payloadConversationHistory,
       }),
     });
 
@@ -2607,6 +2666,12 @@ function App() {
         novaSessionId ||
         getCurrentNovaSessionId() ||
         createNovaSessionId();
+      const payloadConversationHistory = conversationHistory;
+      const requestLanguage = resolveNovaRequestLanguage({
+        message: trimmedMessage,
+        conversationHistory: payloadConversationHistory,
+        fallbackLanguage: currentLanguage,
+      });
       const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
         method: "POST",
         headers: {
@@ -2614,14 +2679,15 @@ function App() {
         },
         body: JSON.stringify({
           message: trimmedMessage,
-          language: currentLanguage,
+          language: requestLanguage,
           sessionId: currentSessionId,
           session_id: currentSessionId,
           clientId: NOVA_CLIENT_ID,
           client_id: NOVA_CLIENT_ID,
           requestType: "NORMAL_CHAT",
           leadData: leadDataForRequest,
-          conversationHistory,
+          conversationHistory: payloadConversationHistory,
+          conversation_history: payloadConversationHistory,
         }),
       });
 
