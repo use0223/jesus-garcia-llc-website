@@ -2,20 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { companyKnowledge } from "./config/companyKnowledge";
 
-const clientTypes = [
-  { value: "General Contractor", label: { en: "General Contractor", es: "Contratista general" } },
-  {
-    value: "Construction Company",
-    label: { en: "Construction Company", es: "Compania de construccion" },
-  },
-  {
-    value: "Remodeling Company",
-    label: { en: "Remodeling Company", es: "Compania de remodelacion" },
-  },
-  { value: "Property Owner", label: { en: "Property Owner", es: "Dueno de propiedad" } },
-  { value: "Other", label: { en: "Other", es: "Otro" } },
-];
-
 const supportedServiceKeywords = [
   ["structural framing", "Framing"],
   ["interior framing", "Framing"],
@@ -95,35 +81,6 @@ const supportedServiceKeywords = [
   ["subcontratista", "Jobsite subcontract support"],
 ];
 
-const companyServiceKeywords = companyKnowledge.coreServices.map((service) => [service, service]);
-
-const notQualifiedKeywords = [
-  ...companyKnowledge.notPrimaryServices,
-  "full home construction",
-  "build a full house",
-  "complete house construction",
-  "full house construction",
-  "electrical",
-  "plumbing",
-  "hvac",
-  "roofing only",
-  "concrete only",
-  "painting only",
-  "landscaping",
-  "architecture",
-  "design only",
-  "construccion completa",
-  "casa completa",
-  "electricidad",
-  "plomeria",
-  "techo solamente",
-  "concreto solamente",
-  "pintura solamente",
-  "jardineria",
-  "arquitectura",
-  "diseno solamente",
-];
-
 const hotKeywords = [
   "ready to start",
   "as soon as possible",
@@ -147,261 +104,6 @@ const hotKeywords = [
   "obra activa",
   "necesito subcontratista",
 ];
-
-const coldKeywords = [
-  "just curious",
-  "checking prices",
-  "maybe later",
-  "not sure",
-  "learning",
-  "idea only",
-  "future project",
-  "solo tengo curiosidad",
-  "estoy revisando precios",
-  "tal vez despues",
-  "no estoy seguro",
-  "estoy aprendiendo",
-  "solo es una idea",
-  "proyecto futuro",
-];
-
-const serviceOptionsByClientType = {
-  "General Contractor": [
-    {
-      value: "Framing subcontract support",
-      label: { en: "Framing subcontract support", es: "Apoyo de subcontrato para framing" },
-    },
-    {
-      value: "Interior finish carpentry package",
-      label: {
-        en: "Interior finish carpentry package",
-        es: "Paquete de finish carpentry interior",
-      },
-    },
-    {
-      value: "Exterior finish carpentry package",
-      label: { en: "Exterior finish carpentry package", es: "Paquete de acabados exteriores" },
-    },
-    {
-      value: "Exterior trim / siding / soffit / fascia",
-      label: {
-        en: "Exterior trim / siding / soffit / fascia",
-        es: "Exterior trim / siding / soffit / fascia",
-      },
-    },
-    {
-      value: "Windows / doors installation",
-      label: { en: "Windows / doors installation", es: "Instalacion de ventanas y puertas" },
-    },
-    {
-      value: "Hardware installation",
-      label: { en: "Hardware installation", es: "Instalacion de hardware" },
-    },
-    {
-      value: "Flooring installation",
-      label: { en: "Flooring installation", es: "Instalacion de pisos" },
-    },
-    {
-      value: "Multi-scope subcontract support",
-      label: {
-        en: "Multi-scope subcontract support",
-        es: "Apoyo de subcontrato multi-servicio",
-      },
-    },
-    {
-      value: "Punch list / final details",
-      label: { en: "Punch list / final details", es: "Punch list / detalles finales" },
-    },
-    {
-      value: "Crew support for active jobsite",
-      label: { en: "Crew support for active jobsite", es: "Apoyo de crew para obra activa" },
-    },
-  ],
-  "Construction Company": [
-    { value: "Structural framing", label: { en: "Structural framing", es: "Framing estructural" } },
-    { value: "Interior framing", label: { en: "Interior framing", es: "Framing interior" } },
-    {
-      value: "Interior finish carpentry",
-      label: { en: "Interior finish carpentry", es: "Finish carpentry interior" },
-    },
-    {
-      value: "Exterior finish carpentry",
-      label: { en: "Exterior finish carpentry", es: "Acabados exteriores" },
-    },
-    { value: "Siding installation", label: { en: "Siding installation", es: "Instalacion de siding" } },
-    {
-      value: "Soffit and fascia installation",
-      label: { en: "Soffit and fascia installation", es: "Instalacion de soffit y fascia" },
-    },
-    { value: "Window installation", label: { en: "Window installation", es: "Instalacion de ventanas" } },
-    { value: "Door installation", label: { en: "Door installation", es: "Instalacion de puertas" } },
-    {
-      value: "Hardware installation",
-      label: { en: "Hardware installation", es: "Instalacion de hardware" },
-    },
-    {
-      value: "Flooring installation",
-      label: { en: "Flooring installation", es: "Instalacion de pisos" },
-    },
-    {
-      value: "Jobsite subcontract support",
-      label: { en: "Jobsite subcontract support", es: "Apoyo de subcontrato en obra" },
-    },
-    {
-      value: "Punch list completion",
-      label: { en: "Punch list completion", es: "Terminacion de punch list" },
-    },
-  ],
-  "Remodeling Company": [
-    { value: "Bathroom demolition", label: { en: "Bathroom demolition", es: "Demolicion de bano" } },
-    { value: "Kitchen demolition", label: { en: "Kitchen demolition", es: "Demolicion de cocina" } },
-    { value: "Floor removal", label: { en: "Floor removal", es: "Remocion de pisos" } },
-    {
-      value: "Wall removal / layout changes",
-      label: {
-        en: "Wall removal / layout changes",
-        es: "Remocion de paredes / cambios de distribucion",
-      },
-    },
-    {
-      value: "Interior framing repairs",
-      label: { en: "Interior framing repairs", es: "Reparaciones de framing interior" },
-    },
-    {
-      value: "Drywall-ready carpentry prep",
-      label: {
-        en: "Drywall-ready carpentry prep",
-        es: "Preparacion de carpinteria lista para drywall",
-      },
-    },
-    {
-      value: "Interior trim installation",
-      label: { en: "Interior trim installation", es: "Instalacion de trim interior" },
-    },
-    {
-      value: "Baseboards / casing / molding",
-      label: { en: "Baseboards / casing / molding", es: "Baseboards / casing / molding" },
-    },
-    {
-      value: "Interior door installation",
-      label: { en: "Interior door installation", es: "Instalacion de puertas interiores" },
-    },
-    { value: "Window installation", label: { en: "Window installation", es: "Instalacion de ventanas" } },
-    {
-      value: "Exterior trim repair",
-      label: { en: "Exterior trim repair", es: "Reparacion de exterior trim" },
-    },
-    {
-      value: "Siding / soffit / fascia repair",
-      label: {
-        en: "Siding / soffit / fascia repair",
-        es: "Reparacion de siding / soffit / fascia",
-      },
-    },
-    {
-      value: "Flooring installation",
-      label: { en: "Flooring installation", es: "Instalacion de pisos" },
-    },
-    {
-      value: "Hardware installation",
-      label: { en: "Hardware installation", es: "Instalacion de hardware" },
-    },
-    {
-      value: "Full remodeling carpentry support",
-      label: {
-        en: "Full remodeling carpentry support",
-        es: "Apoyo completo de carpinteria para remodelacion",
-      },
-    },
-  ],
-  "Property Owner": [
-    { value: "Door replacement", label: { en: "Door replacement", es: "Reemplazo de puertas" } },
-    { value: "Window replacement", label: { en: "Window replacement", es: "Reemplazo de ventanas" } },
-    { value: "Flooring project", label: { en: "Flooring project", es: "Proyecto de pisos" } },
-    {
-      value: "Interior trim / baseboards / casing",
-      label: {
-        en: "Interior trim / baseboards / casing",
-        es: "Trim interior / baseboards / casing",
-      },
-    },
-    {
-      value: "Crown molding or decorative trim",
-      label: {
-        en: "Crown molding or decorative trim",
-        es: "Crown molding o trim decorativo",
-      },
-    },
-    {
-      value: "Small framing repair",
-      label: { en: "Small framing repair", es: "Reparacion pequena de framing" },
-    },
-    { value: "Siding repair", label: { en: "Siding repair", es: "Reparacion de siding" } },
-    {
-      value: "Soffit or fascia repair",
-      label: { en: "Soffit or fascia repair", es: "Reparacion de soffit o fascia" },
-    },
-    {
-      value: "Exterior trim repair",
-      label: { en: "Exterior trim repair", es: "Reparacion de exterior trim" },
-    },
-    {
-      value: "Hardware installation",
-      label: { en: "Hardware installation", es: "Instalacion de hardware" },
-    },
-    {
-      value: "Remodel carpentry help",
-      label: { en: "Remodel carpentry help", es: "Ayuda de carpinteria para remodelacion" },
-    },
-    {
-      value: "Not sure yet / need guidance",
-      label: { en: "Not sure yet / need guidance", es: "No estoy seguro / necesito orientacion" },
-    },
-  ],
-};
-
-const jesusGarciaServiceOptions = [
-  { value: "Door installation", label: { en: "Door installation", es: "Instalación de puertas" } },
-  { value: "Window installation", label: { en: "Window installation", es: "Instalación de ventanas" } },
-  { value: "Flooring", label: { en: "Flooring", es: "Pisos" } },
-  { value: "Cabinets", label: { en: "Cabinets", es: "Gabinetes" } },
-  { value: "Kitchens", label: { en: "Kitchens", es: "Cocinas" } },
-  {
-    value: "Interior ceiling paneling",
-    label: { en: "Interior ceiling paneling", es: "Revestimiento de cielo interior" },
-  },
-  { value: "Framing", label: { en: "Framing", es: "Framing" } },
-  {
-    value: "General finish carpentry",
-    label: { en: "General finish carpentry", es: "Carpintería de acabado general" },
-  },
-  { value: "Siding", label: { en: "Siding", es: "Siding" } },
-  { value: "Decks", label: { en: "Decks", es: "Decks" } },
-  {
-    value: "Complete remodeling",
-    label: { en: "Complete remodeling", es: "Remodelaciones completas" },
-  },
-  {
-    value: "Builder subcontractor support",
-    label: { en: "Builder subcontractor support", es: "Subcontratista para constructoras" },
-  },
-  {
-    value: "Support for builders",
-    label: { en: "Support for builders", es: "Apoyo a constructoras" },
-  },
-  {
-    value: "General contractor support",
-    label: { en: "General contractor support", es: "Apoyo a contratistas generales" },
-  },
-  {
-    value: "Not sure yet / need guidance",
-    label: { en: "Not sure yet / need guidance", es: "No estoy seguro / necesito orientación" },
-  },
-];
-
-Object.keys(serviceOptionsByClientType).forEach((clientType) => {
-  serviceOptionsByClientType[clientType] = jesusGarciaServiceOptions;
-});
 
 const CLIENT_MEDIA_BASE = "/media/jesus-garcia-llc";
 const CLIENT_LOGO = `${CLIENT_MEDIA_BASE}/logo/logo.png`;
@@ -640,8 +342,19 @@ const translations = {
     novaTyping: "NOVA is typing...",
     novaFallback:
       "NOVA is temporarily unavailable. Please leave your name, phone number, and a brief description of your project so the team can follow up.",
+    novaTemporaryError: "NOVA had a temporary issue. Please try sending your message again.",
     novaBasicFallback:
       "NOVA is temporarily unavailable. You can leave your information here and the team will follow up.",
+    novaEmergencyIntro:
+      "The assistant is currently undergoing maintenance. Please complete the form and a member of our team will contact you as soon as possible.",
+    novaEmergencyRecipient: "Recipient",
+    novaEmergencySend: "Send",
+    novaEmergencySending: "Sending...",
+    novaEmergencyEmailError: "Please enter a valid email address.",
+    novaEmergencySubmitError:
+      "Your message could not be sent at this time. Please try again.",
+    novaEmergencySuccess:
+      "Your message has been received. A member of our team will contact you as soon as possible. Thank you for contacting Jesús García LLC.",
     basicFinalThanks:
       "Thank you. We received your information. The team will review your request and follow up with you.",
     basicMissingInfo:
@@ -675,17 +388,11 @@ const translations = {
     chatEnded: "Conversation ended. Press 'Start new chat' to begin another request.",
     normalizedLocationPrompt:
       "Perfect, I'll take that as Jackson, Wyoming. To continue, may I have your phone number and email?",
-    clientQuestion: "Are you contacting us as:",
-    workQuestion: "What type of work do you need help with?",
-    otherQuestion: "Please describe why you are contacting Jesús García LLC.",
     otherPlaceholder: "Describe what you need help with",
     continue: "Continue",
     otherEmptyError: "Please describe what you need help with.",
     otherNotFit: companyKnowledge.customerServiceHandoffMessage.en,
     continueAnyway: "Continue Anyway",
-    sendCustomerService: "Send my request to customer service",
-    startQuestion: "When do you need this work to start?",
-    readinessQuestion: "Are you ready to speak with someone from Jesús García LLC?",
     fullHomeMessage:
       "Jesús García LLC provides installation and remodeling services. Please share the scope so the team can review it.",
     subcontractInstead: "I need subcontractor support instead",
@@ -702,20 +409,14 @@ const translations = {
       ["I am comparing options", "I am comparing options"],
       ["Just gathering information", "Just gathering information"],
     ],
-    basedOnAnswers: "Based on your answers, NOVA classifies this prospect as:",
-    hotTitle: "Your project looks ready for direct contact.",
     hotText:
       "Continue with NOVA so your request can be qualified, reviewed, and coordinated with the team.",
-    warmTitle: "This looks like a warm project lead.",
     warmText:
       "You can leave your details and Jesús García LLC can review your project information.",
-    coldTitle: "You may still be in the planning stage.",
     coldText:
       "You can review the services and leave your information when you have more project details.",
-    reviewTitle: "This request needs customer service review.",
     reviewText:
       "NOVA can capture your details so the customer service team can review your request and give you the final answer.",
-    completeDetails: "Please complete your project details.",
     name: "Full name",
     phone: "Phone number",
     email: "Email",
@@ -735,7 +436,6 @@ const translations = {
       ["Afternoon", "Afternoon"],
       ["As soon as possible", "As soon as possible"],
     ],
-    submitProject: "Submit Project Details",
     submitEstimate: "Submit Estimate Request",
     nameError: "Please enter your name.",
     phoneError: "Please enter your phone number.",
@@ -923,11 +623,22 @@ const translations = {
     novaSubtitle: "Asistente de proyectos de Jesús García LLC",
     novaChatPlaceholder: "Escribe tu mensaje para NOVA",
     novaSend: "Enviar",
+    novaTemporaryError: "NOVA tuvo un problema temporal. Intenta enviar tu mensaje otra vez.",
     novaTyping: "NOVA está escribiendo...",
     novaFallback:
       "NOVA no está disponible temporalmente. Por favor deja tu nombre, teléfono y una breve descripción de tu proyecto para que el equipo pueda darte seguimiento.",
     novaBasicFallback:
       "NOVA no está disponible temporalmente. Puedes dejar tus datos aquí y el equipo te contactará.",
+    novaEmergencyIntro:
+      "En este momento el asistente está en mantenimiento. Por favor, rellena el formulario y una persona de nuestro equipo se pondrá en contacto contigo lo más pronto posible.",
+    novaEmergencyRecipient: "Destinatario",
+    novaEmergencySend: "Enviar",
+    novaEmergencySending: "Enviando...",
+    novaEmergencyEmailError: "Por favor escribe un correo electrónico válido.",
+    novaEmergencySubmitError:
+      "No fue posible enviar tu mensaje en este momento. Por favor, inténtalo nuevamente.",
+    novaEmergencySuccess:
+      "Tu mensaje ha sido recibido. Una persona de nuestro equipo se pondrá en contacto contigo lo más pronto posible. Gracias por contactar a Jesús García LLC.",
     basicFinalThanks:
       "Gracias. Recibimos tu información. El equipo revisará tu solicitud y se comunicará contigo.",
     basicMissingInfo:
@@ -961,17 +672,11 @@ const translations = {
     chatEnded: "Conversación finalizada. Presiona 'Iniciar nuevo chat' para comenzar otra solicitud.",
     normalizedLocationPrompt:
       "Perfecto, lo tomaré como Jackson, Wyoming. Para continuar, ¿me puedes compartir tu teléfono y correo electrónico?",
-    clientQuestion: "Nos contactas como:",
-    workQuestion: "¿Qué tipo de trabajo necesitas?",
-    otherQuestion: "Por favor explica por qué estás contactando a Jesús García LLC.",
     otherPlaceholder: "Describe en qué necesitas ayuda",
     continue: "Continuar",
     otherEmptyError: "Por favor describe en qué necesitas ayuda.",
     otherNotFit: companyKnowledge.customerServiceHandoffMessage.es,
     continueAnyway: "Continuar de todas formas",
-    sendCustomerService: "Enviar mi solicitud a atención al cliente",
-    startQuestion: "¿Cuándo necesitas iniciar este trabajo?",
-    readinessQuestion: "¿Estás listo para hablar con alguien de Jesús García LLC?",
     fullHomeMessage:
       "Jesús García LLC ofrece servicios de instalación y remodelación. Comparte el alcance para que el equipo pueda revisarlo.",
     subcontractInstead: "Necesito apoyo de subcontrato",
@@ -988,20 +693,14 @@ const translations = {
       ["I am comparing options", "Estoy comparando opciones"],
       ["Just gathering information", "Solo estoy buscando informacion"],
     ],
-    basedOnAnswers: "Según tus respuestas, NOVA clasifica este prospecto como:",
-    hotTitle: "Tu proyecto parece listo para contacto directo.",
     hotText:
       "Continúa con NOVA para que tu solicitud sea calificada, revisada y coordinada con el equipo.",
-    warmTitle: "Este parece un prospecto tibio.",
     warmText:
       "Puedes dejar tus datos y Jesús García LLC puede revisar la información de tu proyecto.",
-    coldTitle: "Puede que todavía estés en etapa de planeación.",
     coldText:
       "Puedes revisar los servicios y dejar tu información cuando tengas más detalles del proyecto.",
-    reviewTitle: "Esta solicitud necesita revisión del equipo.",
     reviewText:
       "NOVA puede capturar tus datos para que el equipo revise tu solicitud y te dé la respuesta final.",
-    completeDetails: "Por favor completa los datos de tu proyecto.",
     name: "Nombre",
     phone: "Teléfono",
     email: "Correo electrónico",
@@ -1021,7 +720,6 @@ const translations = {
       ["Afternoon", "Tarde"],
       ["As soon as possible", "Lo antes posible"],
     ],
-    submitProject: "Enviar detalles del proyecto",
     submitEstimate: "Enviar solicitud de cotización",
     nameError: "Por favor escribe tu nombre.",
     phoneError: "Por favor escribe tu número de teléfono.",
@@ -1049,10 +747,6 @@ const translations = {
     },
   },
 };
-
-const isFullHouseConstruction = (service) =>
-  service.toLowerCase().includes("full house construction") ||
-  service.toLowerCase().includes("full home construction");
 
 const normalizeText = (value) =>
   value
@@ -1243,51 +937,21 @@ const findPreviousClientMatch = ({ name, phone, email, previousClientReference }
   });
 };
 
-const analyzeOtherReason = (reason) => {
-  const normalizedReason = normalizeText(reason);
-  const detectedServiceMatch = [...supportedServiceKeywords, ...companyServiceKeywords].find(([keyword]) =>
-    normalizedReason.includes(normalizeText(keyword)),
-  );
-  const isServiceFit =
-    Boolean(detectedServiceMatch) && !includesAnyKeyword(normalizedReason, notQualifiedKeywords);
-  const isNotQualified = includesAnyKeyword(normalizedReason, notQualifiedKeywords);
-  const isHot = includesAnyKeyword(normalizedReason, hotKeywords);
-  const isCold = includesAnyKeyword(normalizedReason, coldKeywords);
-  const detectedService = detectedServiceMatch
-    ? detectedServiceMatch[1]
-    : "Other / Needs review";
-
-  let leadStatus = "WARM LEAD";
-
-  if (isNotQualified || !isServiceFit) {
-    leadStatus = "NEEDS REVIEW";
-  } else if (isHot) {
-    leadStatus = "HOT LEAD";
-  } else if (isCold) {
-    leadStatus = "COLD LEAD";
-  }
-
-  return {
-    isServiceFit,
-    otherAnalysis: isServiceFit
-      ? "Text appears to match Jesús García LLC service scopes."
-      : "Text may not match current Jesús García LLC service scopes.",
-    detectedService,
-    leadStatus,
-    requiresHumanReview: isNotQualified || !isServiceFit,
-  };
-};
-
 const NOVA_FAST_CHAT_ENGINE_URL =
   "https://usedig.app.n8n.cloud/webhook/fast-chat-engine";
+const NOVA_EMERGENCY_CONTACT_URL =
+  "https://usedig.app.n8n.cloud/webhook/jg-nova-emergency-contact";
 const NOVA_CLIENT_ID = "jesus-garcia-llc";
+const NOVA_EMERGENCY_RECIPIENT = "jesusgarciallccompany@gmail.com";
 const novaSmartModeEnabled = true;
+const NOVA_REQUEST_TIMEOUT_MS = 45000;
 const NOVA_SESSION_KEY = "novaSessionId_jesus-garcia-llc";
 const NOVA_HISTORY_KEY = "novaConversationHistory_jesus-garcia-llc";
 const NOVA_MESSAGES_KEY = `novaChatMessages_${NOVA_CLIENT_ID}`;
 const NOVA_LEAD_DATA_KEY = `novaLeadData_${NOVA_CLIENT_ID}`;
 const NOVA_ENDED_CHATS_KEY = `novaEndedChats_${NOVA_CLIENT_ID}`;
 const NOVA_CHAT_RATINGS_KEY = `novaChatRatings_${NOVA_CLIENT_ID}`;
+const NOVA_CHAT_STATE_KEY = `novaChatState_${NOVA_CLIENT_ID}`;
 const NOVA_META_TRACKING_KEY = `novaMetaTracking_${NOVA_CLIENT_ID}`;
 const LEGACY_NOVA_STORAGE_KEYS = [
   "novaSessionId",
@@ -1557,6 +1221,30 @@ const readStorageJson = (key, fallback) => {
   }
 };
 
+const createNovaRequestError = (type, message, details = {}) =>
+  Object.assign(new Error(message), {
+    novaRequestErrorType: type,
+    ...details,
+  });
+
+let novaRequestSequence = 0;
+
+const createNovaRequestId = () => {
+  novaRequestSequence += 1;
+  return `nova-request-${novaRequestSequence}`;
+};
+
+const isIntentionalNovaCancel = (error) =>
+  error?.novaRequestErrorType === "INTENTIONAL_CANCEL" ||
+  error?.novaRequestErrorType === "STALE_SESSION";
+
+const readNovaChatEndedForCurrentSession = () => {
+  const chatState = readStorageJson(NOVA_CHAT_STATE_KEY, {});
+  const sessionId = getCurrentNovaSessionId();
+
+  return Boolean(chatState.sessionId && chatState.sessionId === sessionId && chatState.ended);
+};
+
 const containsLegacyNovaIdentity = (value) => {
   const normalizedValue = String(value || "").toLowerCase();
   return LEGACY_NOVA_IDENTITY_MARKERS.some((marker) => normalizedValue.includes(marker));
@@ -1645,6 +1333,7 @@ const localNovaMessageKeys = [
   "chooseSchedulingSlot",
   "bookingOptionsCleanReply",
   "schedulingUnavailable",
+  "novaTemporaryError",
 ];
 
 const isNovaEndedNoticeMessage = (message) =>
@@ -1665,11 +1354,6 @@ const readStoredNovaMessages = (key) =>
 
 const hasCompleteContactDetails = (leadData) =>
   Boolean(leadData.name?.trim() && leadData.phone?.trim() && leadData.email?.trim());
-
-const isExplicitCloseRequest = (message) =>
-  /\b(?:no gracias|eso es todo|ya no necesito m[aá]s|gracias[, ]+adi[oó]s|adi[oó]s|that'?s all|no thanks|nothing else|goodbye)\b/i.test(
-    message,
-  );
 
 const isDefinitiveNovaClose = (response = {}) => {
   const frontend = response.frontend || {};
@@ -1799,25 +1483,6 @@ function App() {
   });
   const [activeServiceCard, setActiveServiceCard] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState({
-    clientType: "",
-    service: "",
-    serviceLabel: "",
-    startTime: "",
-    startTimeLabel: "",
-    readiness: "",
-    readinessLabel: "",
-    otherReason: "",
-    isServiceFit: null,
-    otherAnalysis: "",
-    detectedService: "",
-    otherLeadStatus: "",
-    requiresHumanReview: false,
-  });
-  const [otherReasonText, setOtherReasonText] = useState("");
-  const [otherError, setOtherError] = useState("");
-  const [showOtherReview, setShowOtherReview] = useState(false);
   const [leadForm, setLeadForm] = useState({
     name: "",
     phone: "",
@@ -1841,6 +1506,7 @@ function App() {
   const [leadError, setLeadError] = useState("");
   const [leadSubmitted, setLeadSubmitted] = useState(false);
   const [submittedLead, setSubmittedLead] = useState(null);
+  const [emergencySubmitting, setEmergencySubmitting] = useState(false);
   const [novaSessionId, setNovaSessionId] = useState(createNovaSessionId);
   const [conversationHistory, setConversationHistory] = useState(() =>
     readStoredNovaMessages(NOVA_HISTORY_KEY),
@@ -1855,7 +1521,7 @@ function App() {
   const [novaInput, setNovaInput] = useState("");
   const [novaLoading, setNovaLoading] = useState(false);
   const [novaSmartFallbackActive, setNovaSmartFallbackActive] = useState(false);
-  const [novaChatEnded, setNovaChatEnded] = useState(false);
+  const [novaChatEnded, setNovaChatEnded] = useState(readNovaChatEndedForCurrentSession);
   const [lastNovaResponse, setLastNovaResponse] = useState(null);
   const [lastUserSmartMessage, setLastUserSmartMessage] = useState("");
   const [novaSizeMode, setNovaSizeMode] = useState("large60");
@@ -1865,11 +1531,20 @@ function App() {
   const [ratingThanksVisible, setRatingThanksVisible] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const novaAutoCloseTimerRef = useRef(null);
+  const novaRatingTimerRef = useRef(null);
+  const activeNovaSessionRef = useRef(novaSessionId);
+  const novaChatEndedRef = useRef(novaChatEnded);
+  const novaRequestGenerationRef = useRef(0);
+  const novaSubmitInFlightRef = useRef(null);
+  const novaEmergencySubmitRef = useRef(null);
+  const pendingNovaRequestsRef = useRef(new Map());
+  const emergencyNameRef = useRef(null);
+  const emergencyPhoneRef = useRef(null);
+  const emergencyEmailRef = useRef(null);
 
   const text = translations[language];
   const t = (key) => text[key];
   const currentLanguage = language === "en" ? "en" : "es";
-  const getLabel = (item) => item.label[language] || item.label.en;
   const formatStatus = (status) => text.statusLabels[status] || status;
   const formatNovaMessage = (key, values = {}) =>
     Object.entries(values).reduce(
@@ -1878,8 +1553,7 @@ function App() {
     );
   const isNovaSmartModeActive =
     novaSmartModeEnabled && !novaSmartFallbackActive && !quoteMode;
-  const isNovaBasicModeActive =
-    !quoteMode && (!novaSmartModeEnabled || novaSmartFallbackActive);
+  const isNovaEmergencyModeActive = !quoteMode && novaSmartFallbackActive;
 
   const trackNovaLeadProgress = (leadData = novaLeadData, response = {}) => {
     const safeParams = getSafeNovaLeadMetaParams(leadData, response);
@@ -1988,15 +1662,303 @@ function App() {
     }
   };
 
+  const cancelNovaRatingTimer = () => {
+    if (novaRatingTimerRef.current) {
+      window.clearTimeout(novaRatingTimerRef.current);
+      novaRatingTimerRef.current = null;
+    }
+  };
+
+  const isNovaSessionActive = (sessionId) => activeNovaSessionRef.current === sessionId;
+
+  const isNovaGenerationCurrent = (sessionId, generation) =>
+    isNovaSessionActive(sessionId) && novaRequestGenerationRef.current === generation;
+
+  const isNovaRequestCurrent = (sessionId, generation) =>
+    isNovaGenerationCurrent(sessionId, generation) &&
+    !novaChatEndedRef.current;
+
+  const releaseNovaSubmitLock = (generation) => {
+    if (novaSubmitInFlightRef.current === generation) {
+      novaSubmitInFlightRef.current = null;
+    }
+  };
+
+  const markNovaChatEndedForSession = (sessionId, ended) => {
+    localStorage.setItem(
+      NOVA_CHAT_STATE_KEY,
+      JSON.stringify({
+        sessionId,
+        ended: Boolean(ended),
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  };
+
+  const cancelPendingNovaRequests = (reason = "INTENTIONAL_CANCEL") => {
+    pendingNovaRequestsRef.current.forEach((entry) => {
+      entry.cancelType = reason;
+
+      if (entry.timeoutId) {
+        window.clearTimeout(entry.timeoutId);
+        entry.timeoutId = null;
+      }
+
+      entry.controller.abort();
+    });
+  };
+
+  const fetchNovaJson = async (payload, { sessionId, requestType, generation }) => {
+    const requestId = createNovaRequestId();
+    const controller = new AbortController();
+    const requestEntry = {
+      controller,
+      sessionId,
+      requestType,
+      cancelType: "",
+      didTimeout: false,
+      timeoutId: null,
+    };
+
+    requestEntry.timeoutId = window.setTimeout(() => {
+      requestEntry.didTimeout = true;
+      controller.abort();
+    }, NOVA_REQUEST_TIMEOUT_MS);
+
+    pendingNovaRequestsRef.current.set(requestId, requestEntry);
+
+    try {
+      const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      if (!isNovaRequestCurrent(sessionId, generation)) {
+        throw createNovaRequestError("STALE_SESSION", "NOVA response belongs to an inactive session.", {
+          requestType,
+        });
+      }
+
+      if (!response.ok) {
+        throw createNovaRequestError("HTTP_ERROR", `NOVA request failed with ${response.status}`, {
+          requestType,
+          status: response.status,
+        });
+      }
+
+      const responseText = await response.text();
+
+      if (!isNovaRequestCurrent(sessionId, generation)) {
+        throw createNovaRequestError("STALE_SESSION", "NOVA response belongs to an inactive session.", {
+          requestType,
+        });
+      }
+
+      if (!responseText.trim()) {
+        throw createNovaRequestError("EMPTY_RESPONSE", "NOVA returned an empty response.", {
+          requestType,
+        });
+      }
+
+      try {
+        const parsedResponse = JSON.parse(responseText);
+
+        if (parsedResponse?.success === false) {
+          throw createNovaRequestError("WORKFLOW_ERROR", "NOVA workflow returned success false.", {
+            requestType,
+          });
+        }
+
+        return parsedResponse;
+      } catch (error) {
+        if (error?.novaRequestErrorType) {
+          throw error;
+        }
+
+        throw createNovaRequestError("INVALID_JSON", "NOVA returned invalid JSON.", {
+          requestType,
+          cause: error,
+        });
+      }
+    } catch (error) {
+      if (requestEntry.cancelType) {
+        throw createNovaRequestError(requestEntry.cancelType, "NOVA request was intentionally cancelled.", {
+          requestType,
+        });
+      }
+
+      if (requestEntry.didTimeout) {
+        throw createNovaRequestError("TIMEOUT", "NOVA request timed out.", { requestType });
+      }
+
+      if (!isNovaRequestCurrent(sessionId, generation)) {
+        throw createNovaRequestError("STALE_SESSION", "NOVA request belongs to an inactive session.", {
+          requestType,
+        });
+      }
+
+      if (error?.novaRequestErrorType) {
+        throw error;
+      }
+
+      if (error?.name === "AbortError") {
+        throw createNovaRequestError("INTENTIONAL_CANCEL", "NOVA request was cancelled.", {
+          requestType,
+        });
+      }
+
+      throw createNovaRequestError("NETWORK_ERROR", "NOVA request failed before receiving a response.", {
+        requestType,
+        cause: error,
+      });
+    } finally {
+      if (requestEntry.timeoutId) {
+        window.clearTimeout(requestEntry.timeoutId);
+      }
+
+      pendingNovaRequestsRef.current.delete(requestId);
+    }
+  };
+
+  const sendNovaEmergencyContact = async (payload, { sessionId, generation }) => {
+    const requestType = "EMERGENCY_CONTACT";
+    const requestId = createNovaRequestId();
+    const controller = new AbortController();
+    const requestEntry = {
+      controller,
+      sessionId,
+      requestType,
+      cancelType: "",
+      didTimeout: false,
+      timeoutId: null,
+    };
+
+    requestEntry.timeoutId = window.setTimeout(() => {
+      requestEntry.didTimeout = true;
+      controller.abort();
+    }, NOVA_REQUEST_TIMEOUT_MS);
+
+    pendingNovaRequestsRef.current.set(requestId, requestEntry);
+
+    try {
+      const response = await fetch(NOVA_EMERGENCY_CONTACT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      if (!isNovaRequestCurrent(sessionId, generation)) {
+        throw createNovaRequestError("STALE_SESSION", "Emergency contact belongs to an inactive session.", {
+          requestType,
+        });
+      }
+
+      if (!response.ok) {
+        throw createNovaRequestError("HTTP_ERROR", `Emergency contact failed with ${response.status}`, {
+          requestType,
+          status: response.status,
+        });
+      }
+
+      const responseText = await response.text();
+
+      if (!responseText.trim()) {
+        throw createNovaRequestError("EMPTY_RESPONSE", "Emergency contact returned an empty response.", {
+          requestType,
+        });
+      }
+
+      const emergencyResponse = JSON.parse(responseText);
+
+      if (emergencyResponse?.success !== true) {
+        throw createNovaRequestError("WORKFLOW_ERROR", "Emergency contact was not accepted.", {
+          requestType,
+        });
+      }
+
+      return emergencyResponse;
+    } catch (error) {
+      if (requestEntry.cancelType) {
+        throw createNovaRequestError(requestEntry.cancelType, "Emergency contact was intentionally cancelled.", {
+          requestType,
+        });
+      }
+
+      if (requestEntry.didTimeout) {
+        throw createNovaRequestError("TIMEOUT", "Emergency contact timed out.", { requestType });
+      }
+
+      if (!isNovaRequestCurrent(sessionId, generation)) {
+        throw createNovaRequestError("STALE_SESSION", "Emergency contact belongs to an inactive session.", {
+          requestType,
+        });
+      }
+
+      if (error?.novaRequestErrorType) {
+        throw error;
+      }
+
+      if (error instanceof SyntaxError) {
+        throw createNovaRequestError("INVALID_JSON", "Emergency contact returned invalid JSON.", {
+          requestType,
+          cause: error,
+        });
+      }
+
+      if (error?.name === "AbortError") {
+        throw createNovaRequestError("INTENTIONAL_CANCEL", "Emergency contact was cancelled.", {
+          requestType,
+        });
+      }
+
+      throw createNovaRequestError("NETWORK_ERROR", "Emergency contact failed before receiving a response.", {
+        requestType,
+        cause: error,
+      });
+    } finally {
+      if (requestEntry.timeoutId) {
+        window.clearTimeout(requestEntry.timeoutId);
+      }
+
+      pendingNovaRequestsRef.current.delete(requestId);
+    }
+  };
+
   const scheduleNovaAutoClose = (delayMs = 10000) => {
     cancelNovaAutoClose();
+    const sessionId = activeNovaSessionRef.current;
     novaAutoCloseTimerRef.current = window.setTimeout(() => {
-      setChatOpen(false);
+      if (isNovaSessionActive(sessionId)) {
+        setChatOpen(false);
+      }
+
       novaAutoCloseTimerRef.current = null;
     }, delayMs);
   };
 
-  useEffect(() => () => cancelNovaAutoClose(), []);
+  useEffect(() => {
+    activeNovaSessionRef.current = novaSessionId;
+  }, [novaSessionId]);
+
+  useEffect(() => {
+    novaChatEndedRef.current = novaChatEnded;
+  }, [novaChatEnded]);
+
+  useEffect(
+    () => () => {
+      cancelNovaAutoClose();
+      cancelNovaRatingTimer();
+      cancelPendingNovaRequests("INTENTIONAL_CANCEL");
+    },
+    [],
+  );
 
   const toggleLanguage = () => {
     const nextLanguage = language === "en" ? "es" : "en";
@@ -2049,18 +2011,36 @@ function App() {
   };
 
   const resetNovaSmartSession = () => {
+    cancelPendingNovaRequests("INTENTIONAL_CANCEL");
     cancelNovaAutoClose();
+    cancelNovaRatingTimer();
     const nextSessionId = createNewNovaSessionId();
 
+    activeNovaSessionRef.current = nextSessionId;
+    novaChatEndedRef.current = false;
+    novaRequestGenerationRef.current += 1;
+    novaSubmitInFlightRef.current = null;
+    novaEmergencySubmitRef.current = null;
+    markNovaChatEndedForSession(nextSessionId, false);
     setNovaSessionId(nextSessionId);
     saveConversationHistory([]);
     saveNovaMessages([]);
     replaceNovaLeadData(emptyNovaLeadData);
+    setLeadForm({
+      name: "",
+      phone: "",
+      email: "",
+      projectLocation: "",
+      message: "",
+    });
     setNovaInput("");
     setNovaLoading(false);
     setNovaChatEnded(false);
     setNovaSmartFallbackActive(false);
     setLeadError("");
+    setLeadSubmitted(false);
+    setSubmittedLead(null);
+    setEmergencySubmitting(false);
     setLastNovaResponse(null);
     setLastUserSmartMessage("");
     setSchedulingSlots([]);
@@ -2087,11 +2067,23 @@ function App() {
   };
 
   const endNovaChat = () => {
+    novaChatEndedRef.current = true;
+    novaRequestGenerationRef.current += 1;
+    novaSubmitInFlightRef.current = null;
+    novaEmergencySubmitRef.current = null;
+    cancelPendingNovaRequests("INTENTIONAL_CANCEL");
+    cancelNovaAutoClose();
+    cancelNovaRatingTimer();
     trackNovaCompletedAndClosed();
     setRatingPromptActive(false);
     setNovaInput("");
     setNovaLoading(false);
+    setSchedulingLoading(false);
+    setEmergencySubmitting(false);
+    setNovaChatEnded(true);
+    setSchedulingSlots([]);
     setLeadError("");
+    markNovaChatEndedForSession(activeNovaSessionRef.current, true);
   };
 
   const completeNovaChatAfterRating = (rating) => {
@@ -2138,7 +2130,13 @@ function App() {
       },
     ]);
 
-    window.setTimeout(() => {
+    const ratingSessionId = activeNovaSessionRef.current;
+    cancelNovaRatingTimer();
+    novaRatingTimerRef.current = window.setTimeout(() => {
+      if (!isNovaSessionActive(ratingSessionId)) {
+        return;
+      }
+
       setNovaInput("");
       setNovaChatEnded(true);
       setNovaLoading(false);
@@ -2150,6 +2148,8 @@ function App() {
       setSchedulingLoading(false);
       setRatingThanksVisible(false);
       setChatOpen(false);
+      markNovaChatEndedForSession(ratingSessionId, true);
+      novaRatingTimerRef.current = null;
     }, 1000);
   };
 
@@ -2230,9 +2230,11 @@ function App() {
     selectedSlot,
     leadData,
     conversationHistory: schedulingConversationHistory = conversationHistory,
+    requestGeneration = novaRequestGenerationRef.current,
   }) => {
     const { dateFrom, dateTo } = getSchedulingWindow();
     const currentSessionId =
+      activeNovaSessionRef.current ||
       novaSessionId ||
       getCurrentNovaSessionId() ||
       createNovaSessionId();
@@ -2242,12 +2244,8 @@ function App() {
       conversationHistory: payloadConversationHistory,
       fallbackLanguage: currentLanguage,
     });
-    const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    return fetchNovaJson(
+      {
         clientId: NOVA_CLIENT_ID,
         client_id: NOVA_CLIENT_ID,
         sessionId: currentSessionId,
@@ -2269,17 +2267,14 @@ function App() {
         leadData: getSchedulingLeadData(leadData, schedulingConversationHistory),
         conversationHistory: payloadConversationHistory,
         conversation_history: payloadConversationHistory,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`NOVA scheduling request failed with ${response.status}`);
-    }
-
-    return response.json();
+      },
+      { sessionId: currentSessionId, requestType: "SCHEDULING_REQUEST", generation: requestGeneration },
+    );
   };
 
   const requestSchedulingSlots = async (leadData, baseMessages = novaMessages, baseHistory = conversationHistory) => {
+    const requestSessionId = activeNovaSessionRef.current;
+    const requestGeneration = novaRequestGenerationRef.current;
     setSchedulingLoading(true);
     trackMetaOnce(
       "scheduling_started",
@@ -2298,7 +2293,13 @@ function App() {
         schedulingMode: "GET_SLOTS",
         leadData,
         conversationHistory: baseHistory,
+        requestGeneration,
       });
+
+      if (!isNovaRequestCurrent(requestSessionId, requestGeneration)) {
+        return;
+      }
+
       const slots = getBookingOptions(schedulingResponse).slice(0, 6);
       const normalizedSchedulingReply = removePrematureClosingText(
         normalizeNovaIdentityText(schedulingResponse.reply),
@@ -2321,22 +2322,30 @@ function App() {
       setSchedulingSlots(slots);
       saveConversationHistory(nextHistory);
       saveNovaMessages(nextMessages);
-    } catch {
+    } catch (error) {
+      if (isIntentionalNovaCancel(error) || !isNovaRequestCurrent(requestSessionId, requestGeneration)) {
+        return;
+      }
+
       setSchedulingSlots([]);
+      setNovaSmartFallbackActive(true);
       const schedulingErrorMessage = {
         role: "assistant",
         content: t("schedulingUnavailable"),
         translationKey: "schedulingUnavailable",
         createdAt: new Date().toISOString(),
       };
-      saveConversationHistory([...baseHistory, schedulingErrorMessage]);
       saveNovaMessages([...baseMessages, schedulingErrorMessage]);
     } finally {
-      setSchedulingLoading(false);
+      if (isNovaGenerationCurrent(requestSessionId, requestGeneration)) {
+        setSchedulingLoading(false);
+      }
     }
   };
 
   const bookSchedulingSlot = async (slot) => {
+    const requestSessionId = activeNovaSessionRef.current;
+    const requestGeneration = novaRequestGenerationRef.current;
     cancelNovaAutoClose();
     const selectedTime = formatSlotTimeLabel(slot);
     const selectedDate = new Date(slot.start);
@@ -2378,7 +2387,13 @@ function App() {
         selectedSlot: slot,
         leadData: latestLeadData,
         conversationHistory: historyWithSelection,
+        requestGeneration,
       });
+
+      if (!isNovaRequestCurrent(requestSessionId, requestGeneration)) {
+        return;
+      }
+
       const normalizedSchedulingResponseReply = normalizeText(schedulingResponse.reply || "");
       const isAppointmentScheduled =
         schedulingResponse.mode === "APPOINTMENT_SCHEDULED" ||
@@ -2483,201 +2498,164 @@ function App() {
       );
       if (isDefinitiveNovaClose(schedulingResponse)) {
         setNovaChatEnded(true);
+        markNovaChatEndedForSession(requestSessionId, true);
         setRatingPromptActive(schedulingResponse.showRating === true);
         setSchedulingSlots([]);
         setNovaLoading(false);
         setSchedulingLoading(false);
         scheduleNovaAutoClose(getNovaAutoCloseDelayMs(schedulingResponse));
       }
-    } catch {
+    } catch (error) {
+      if (isIntentionalNovaCancel(error) || !isNovaRequestCurrent(requestSessionId, requestGeneration)) {
+        return;
+      }
+
+      setNovaSmartFallbackActive(true);
       const errorMessage = {
         role: "assistant",
         content: t("schedulingUnavailable"),
         translationKey: "schedulingUnavailable",
         createdAt: new Date().toISOString(),
       };
-      saveConversationHistory(
-        appendAssistantMessageIfUnique(historyWithSelection, errorMessage),
-      );
       saveNovaMessages(
         appendAssistantMessageIfUnique(messagesWithSelection, errorMessage),
       );
     } finally {
-      setSchedulingLoading(false);
+      if (isNovaGenerationCurrent(requestSessionId, requestGeneration)) {
+        setSchedulingLoading(false);
+      }
     }
-  };
-
-  const sendToNovaBasicLead = async (leadData) => {
-    console.log("NOVA mode:", novaSmartModeEnabled ? "SMART" : "BASIC");
-    console.log("NOVA engine URL:", NOVA_FAST_CHAT_ENGINE_URL);
-
-    const currentSessionId =
-      novaSessionId ||
-      getCurrentNovaSessionId() ||
-      createNovaSessionId();
-    const payloadConversationHistory = conversationHistory;
-    const requestLanguage = resolveNovaRequestLanguage({
-      message: [
-        leadData.projectDescription,
-        leadData.message,
-        leadData.service,
-        leadData.projectLocation,
-        leadData.name,
-      ].join(" "),
-      conversationHistory: payloadConversationHistory,
-      fallbackLanguage: currentLanguage,
-    });
-    const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        clientId: NOVA_CLIENT_ID,
-        client_id: NOVA_CLIENT_ID,
-        sessionId: currentSessionId,
-        session_id: currentSessionId,
-        language: requestLanguage,
-        requestType: "BASIC_LEAD_CAPTURE",
-        source: "NOVA_BASIC_MODE",
-        pageUrl: window.location.href,
-        userAgent: navigator.userAgent,
-        leadData: {
-          name: leadData.name || "",
-          phone: leadData.phone || "",
-          email: leadData.email || "",
-          projectLocation: leadData.projectLocation || "",
-          clientType: leadData.clientType || "",
-          service: leadData.service || "",
-          projectDescription: leadData.projectDescription || leadData.message || "",
-          desiredStartDate: leadData.desiredStartDate || "",
-          isPreviousClient: Boolean(leadData.isPreviousClient),
-          previousClientReference: leadData.previousClientReference || "",
-        },
-        conversationHistory: payloadConversationHistory,
-        conversation_history: payloadConversationHistory,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`NOVA basic request failed with ${response.status}`);
-    }
-
-    return response.json();
   };
 
   const sendToNovaAgent = async (message) => {
     const trimmedMessage = message.trim();
 
-    if (!trimmedMessage || novaLoading || novaChatEnded) {
+    if (!trimmedMessage || novaLoading || novaChatEnded || novaChatEndedRef.current) {
       return;
     }
 
-    cancelNovaAutoClose();
-    trackMetaOnce("first_message_standard", "standard", "Contact", {}, { sessionId: novaSessionId });
-    trackMetaOnce("first_message_custom", "custom", "JG_NOVA_FIRST_MESSAGE", {}, { sessionId: novaSessionId });
-
-    const storedLeadData = readStorageJson(NOVA_LEAD_DATA_KEY, {});
-    const baseLeadDataForRequest = {
-      ...novaLeadData,
-      ...normalizeNovaLeadDataFields(storedLeadData),
-    };
-    const leadDataForRequest = {
-      ...baseLeadDataForRequest,
-      ...normalizeUserMessageForLeadData(trimmedMessage, baseLeadDataForRequest),
-    };
-    updateNovaLeadData(leadDataForRequest);
-    trackNovaLeadProgress(leadDataForRequest);
-
-    const userMessage = {
-      role: "user",
-      content: trimmedMessage,
-      createdAt: new Date().toISOString(),
-    };
-    const nextMessages = [...novaMessages, userMessage];
-    const waitingForContactPreference =
-      lastNovaResponse?.nextAction === "ASK_CONTACT_PREFERENCE" &&
-      lastNovaResponse?.conversationComplete === false;
-    const shouldResolveRepeatedLocationLocally =
-      leadDataForRequest.projectLocation === "Jackson, Wyoming" &&
-      normalizeText(trimmedMessage) === normalizeText(lastUserSmartMessage) &&
-      (lastNovaResponse?.nextAction === "ASK_LOCATION" ||
-        lastNovaResponse?.missingFields?.includes("projectLocation"));
-
-    saveNovaMessages(nextMessages);
-    setSchedulingSlots([]);
-    setNovaInput("");
-    setLastUserSmartMessage(trimmedMessage);
-
-    if (waitingForContactPreference && isUrgentContactPreference(trimmedMessage)) {
-      const urgentConfirmation = {
-        role: "assistant",
-        content: `${formatNovaMessage("urgentContactConfirmed", {
-          name: leadDataForRequest.name,
-        })} ${t("anythingElse")}`,
-        createdAt: new Date().toISOString(),
-      };
-      const nextHistory = [...conversationHistory, userMessage, urgentConfirmation];
-
-      setLastNovaResponse({
-        nextAction: "ASK_ANYTHING_ELSE",
-        conversationComplete: false,
-        contactPreference: "AS_SOON_AS_POSSIBLE",
-      });
-      saveConversationHistory(nextHistory);
-      saveNovaMessages([...nextMessages, urgentConfirmation]);
+    if (novaSubmitInFlightRef.current !== null) {
       return;
     }
 
-    if (waitingForContactPreference && isSchedulingPreference(trimmedMessage)) {
-      const nextHistory = [...conversationHistory, userMessage];
-
-      setLastNovaResponse({
-        nextAction: "SCHEDULE_CALL",
-        conversationComplete: false,
-        needsScheduling: true,
-      });
-      saveConversationHistory(nextHistory);
-      requestSchedulingSlots(leadDataForRequest, nextMessages, nextHistory);
-      return;
-    }
-
-    if (shouldResolveRepeatedLocationLocally) {
-      const localAssistantMessage = {
-        role: "assistant",
-        content: t("normalizedLocationPrompt"),
-        translationKey: "normalizedLocationPrompt",
-        createdAt: new Date().toISOString(),
-      };
-      const nextHistory = [...conversationHistory, userMessage, localAssistantMessage];
-
-      saveConversationHistory(nextHistory);
-      saveNovaMessages([...nextMessages, localAssistantMessage]);
-      return;
-    }
-
-    setNovaLoading(true);
+    const requestGeneration = novaRequestGenerationRef.current;
+    novaSubmitInFlightRef.current = requestGeneration;
+    let currentSessionId = activeNovaSessionRef.current || novaSessionId || "";
+    let nextMessagesForError = null;
 
     try {
+      currentSessionId = currentSessionId || getCurrentNovaSessionId() || createNovaSessionId();
+      cancelNovaAutoClose();
+
+      try {
+        trackMetaOnce("first_message_standard", "standard", "Contact", {}, { sessionId: novaSessionId });
+        trackMetaOnce("first_message_custom", "custom", "JG_NOVA_FIRST_MESSAGE", {}, { sessionId: novaSessionId });
+      } catch (trackingError) {
+        console.warn("NOVA tracking failed before message request.", trackingError);
+      }
+
+      const storedLeadData = readStorageJson(NOVA_LEAD_DATA_KEY, {});
+      const baseLeadDataForRequest = {
+        ...novaLeadData,
+        ...normalizeNovaLeadDataFields(storedLeadData),
+      };
+      const leadDataForRequest = {
+        ...baseLeadDataForRequest,
+        ...normalizeUserMessageForLeadData(trimmedMessage, baseLeadDataForRequest),
+      };
+      updateNovaLeadData(leadDataForRequest);
+
+      try {
+        trackNovaLeadProgress(leadDataForRequest);
+      } catch (trackingError) {
+        console.warn("NOVA lead tracking failed before message request.", trackingError);
+      }
+
+      const userMessage = {
+        role: "user",
+        content: trimmedMessage,
+        createdAt: new Date().toISOString(),
+      };
+      const payloadConversationHistory = conversationHistory;
+      const historyWithUserMessage = [...payloadConversationHistory, userMessage];
+      const nextMessages = [...novaMessages, userMessage];
+      nextMessagesForError = nextMessages;
+      const waitingForContactPreference =
+        lastNovaResponse?.nextAction === "ASK_CONTACT_PREFERENCE" &&
+        lastNovaResponse?.conversationComplete === false;
+      const shouldResolveRepeatedLocationLocally =
+        leadDataForRequest.projectLocation === "Jackson, Wyoming" &&
+        normalizeText(trimmedMessage) === normalizeText(lastUserSmartMessage) &&
+        (lastNovaResponse?.nextAction === "ASK_LOCATION" ||
+          lastNovaResponse?.missingFields?.includes("projectLocation"));
+
+      saveNovaMessages(nextMessages);
+      saveConversationHistory(historyWithUserMessage);
+      setSchedulingSlots([]);
+      setNovaInput("");
+      setLastUserSmartMessage(trimmedMessage);
+
+      if (waitingForContactPreference && isUrgentContactPreference(trimmedMessage)) {
+        const urgentConfirmation = {
+          role: "assistant",
+          content: `${formatNovaMessage("urgentContactConfirmed", {
+            name: leadDataForRequest.name,
+          })} ${t("anythingElse")}`,
+          createdAt: new Date().toISOString(),
+        };
+        const nextHistory = [...historyWithUserMessage, urgentConfirmation];
+
+        setLastNovaResponse({
+          nextAction: "ASK_ANYTHING_ELSE",
+          conversationComplete: false,
+          contactPreference: "AS_SOON_AS_POSSIBLE",
+        });
+        saveConversationHistory(nextHistory);
+        saveNovaMessages([...nextMessages, urgentConfirmation]);
+        releaseNovaSubmitLock(requestGeneration);
+        return;
+      }
+
+      if (waitingForContactPreference && isSchedulingPreference(trimmedMessage)) {
+        const nextHistory = historyWithUserMessage;
+
+        setLastNovaResponse({
+          nextAction: "SCHEDULE_CALL",
+          conversationComplete: false,
+          needsScheduling: true,
+        });
+        saveConversationHistory(nextHistory);
+        requestSchedulingSlots(leadDataForRequest, nextMessages, nextHistory);
+        releaseNovaSubmitLock(requestGeneration);
+        return;
+      }
+
+      if (shouldResolveRepeatedLocationLocally) {
+        const localAssistantMessage = {
+          role: "assistant",
+          content: t("normalizedLocationPrompt"),
+          translationKey: "normalizedLocationPrompt",
+          createdAt: new Date().toISOString(),
+        };
+        const nextHistory = [...historyWithUserMessage, localAssistantMessage];
+
+        saveConversationHistory(nextHistory);
+        saveNovaMessages([...nextMessages, localAssistantMessage]);
+        releaseNovaSubmitLock(requestGeneration);
+        return;
+      }
+
+      setNovaLoading(true);
       console.log("NOVA mode:", novaSmartModeEnabled ? "SMART" : "BASIC");
       console.log("NOVA engine URL:", NOVA_FAST_CHAT_ENGINE_URL);
 
-      const currentSessionId =
-        novaSessionId ||
-        getCurrentNovaSessionId() ||
-        createNovaSessionId();
-      const payloadConversationHistory = conversationHistory;
       const requestLanguage = resolveNovaRequestLanguage({
         message: trimmedMessage,
         conversationHistory: payloadConversationHistory,
         fallbackLanguage: currentLanguage,
       });
-      const response = await fetch(NOVA_FAST_CHAT_ENGINE_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const novaResponse = await fetchNovaJson(
+        {
           message: trimmedMessage,
           language: requestLanguage,
           sessionId: currentSessionId,
@@ -2688,14 +2666,14 @@ function App() {
           leadData: leadDataForRequest,
           conversationHistory: payloadConversationHistory,
           conversation_history: payloadConversationHistory,
-        }),
-      });
+        },
+        { sessionId: currentSessionId, requestType: "NORMAL_CHAT", generation: requestGeneration },
+      );
 
-      if (!response.ok) {
-        throw new Error(`NOVA request failed with ${response.status}`);
+      if (!isNovaRequestCurrent(currentSessionId, requestGeneration)) {
+        return;
       }
 
-      const novaResponse = await response.json();
       const responseLeadData = novaResponse.leadData
         ? normalizeNovaLeadDataFields(novaResponse.leadData)
         : {};
@@ -2725,7 +2703,11 @@ function App() {
         nextAction: getMetaNextAction(latestLeadDataForRequest, normalizedResponse),
         next_action: getMetaNextAction(latestLeadDataForRequest, normalizedResponse),
       };
-      trackNovaLeadProgress(latestTrackedLeadData, normalizedResponse);
+      try {
+        trackNovaLeadProgress(latestTrackedLeadData, normalizedResponse);
+      } catch (trackingError) {
+        console.warn("NOVA lead tracking failed after message response.", trackingError);
+      }
       const responseBookingOptions = getBookingOptions(novaResponse).slice(0, 6);
       const hasBookingOptions =
         responseBookingOptions.length > 0 ||
@@ -2735,17 +2717,21 @@ function App() {
         normalizedResponse.needsScheduling ||
         normalizedResponse.nextAction === "SCHEDULE_CALL";
       if (isSchedulingResponse) {
-        trackMetaOnce(
-          "scheduling_started",
-          "custom",
-          "JG_NOVA_SCHEDULING_STARTED",
-          {
-            lead_status: latestTrackedLeadData.leadStatus || latestTrackedLeadData.lead_status || "",
-            next_action: normalizedResponse.nextAction || "",
-            scheduling_mode: hasBookingOptions ? "SHOW_BOOKING_OPTIONS" : "GET_SLOTS",
-          },
-          { sessionId: novaSessionId },
-        );
+        try {
+          trackMetaOnce(
+            "scheduling_started",
+            "custom",
+            "JG_NOVA_SCHEDULING_STARTED",
+            {
+              lead_status: latestTrackedLeadData.leadStatus || latestTrackedLeadData.lead_status || "",
+              next_action: normalizedResponse.nextAction || "",
+              scheduling_mode: hasBookingOptions ? "SHOW_BOOKING_OPTIONS" : "GET_SLOTS",
+            },
+            { sessionId: novaSessionId },
+          );
+        } catch (trackingError) {
+          console.warn("NOVA scheduling tracking failed after message response.", trackingError);
+        }
       }
       const existingRatings = readStorageJson(NOVA_CHAT_RATINGS_KEY, []);
       const hasExistingRating = existingRatings.some(
@@ -2779,7 +2765,6 @@ function App() {
           bookingOptionsKey: getBookingOptionsKey(responseBookingOptions),
         },
       };
-      const historyWithUserMessage = [...conversationHistory, userMessage];
       const nextHistory = appendAssistantMessageIfUnique(
         historyWithUserMessage,
         assistantMessage,
@@ -2809,69 +2794,58 @@ function App() {
 
       if (shouldShowRating) {
         setNovaChatEnded(true);
+        markNovaChatEndedForSession(currentSessionId, true);
         setRatingPromptActive(true);
         setSchedulingSlots([]);
       } else if (shouldEndChat) {
         setNovaChatEnded(true);
+        markNovaChatEndedForSession(currentSessionId, true);
         setRatingPromptActive(false);
         setSchedulingSlots([]);
       }
-    } catch {
+    } catch (error) {
+      if (
+        isIntentionalNovaCancel(error) ||
+        (currentSessionId && !isNovaRequestCurrent(currentSessionId, requestGeneration))
+      ) {
+        return;
+      }
+
+      const temporaryErrorMessage = {
+        role: "assistant",
+        content: t("novaTemporaryError"),
+        translationKey: "novaTemporaryError",
+        createdAt: new Date().toISOString(),
+        metadata: {
+          frontendOnly: true,
+          errorType: error?.novaRequestErrorType || "UNKNOWN_ERROR",
+        },
+      };
+
       setNovaSmartFallbackActive(true);
+      if (nextMessagesForError) {
+        try {
+          saveNovaMessages([...nextMessagesForError, temporaryErrorMessage]);
+        } catch (saveError) {
+          console.warn("NOVA temporary error message could not be persisted.", saveError);
+        }
+      }
       setLeadError("");
     } finally {
-      setNovaLoading(false);
+      const isCurrentSubmit = currentSessionId
+        ? isNovaGenerationCurrent(currentSessionId, requestGeneration)
+        : novaRequestGenerationRef.current === requestGeneration;
+
+      if (isCurrentSubmit) {
+        setNovaLoading(false);
+        releaseNovaSubmitLock(requestGeneration);
+      }
     }
   };
 
   const handleNovaChatSubmit = (event) => {
     event.preventDefault();
     sendToNovaAgent(novaInput);
-  };
-
-  const updateAnswer = (field, value, label = value) => {
-    const nextAnswers = { ...answers, [field]: value };
-
-    if (field === "service") {
-      nextAnswers.serviceLabel = label;
-    }
-
-    if (field === "startTime") {
-      nextAnswers.startTimeLabel = label;
-    }
-
-    if (field === "readiness") {
-      nextAnswers.readinessLabel = label;
-    }
-
-    setAnswers(nextAnswers);
-    if (field === "service") {
-      updateNovaLeadData({ service: label || value });
-    }
-    setStep(step + 1);
-  };
-
-  const updateClientType = (clientType) => {
-    setAnswers({
-      ...answers,
-      clientType,
-      service: "",
-      serviceLabel: "",
-      startTime: "",
-      startTimeLabel: "",
-      readiness: "",
-      readinessLabel: "",
-      otherReason: clientType === "Other" ? answers.otherReason : "",
-      isServiceFit: clientType === "Other" ? answers.isServiceFit : null,
-      otherAnalysis: clientType === "Other" ? answers.otherAnalysis : "",
-      detectedService: clientType === "Other" ? answers.detectedService : "",
-      otherLeadStatus: clientType === "Other" ? answers.otherLeadStatus : "",
-      requiresHumanReview: clientType === "Other" ? answers.requiresHumanReview : false,
-    });
-    setOtherError("");
-    setShowOtherReview(false);
-    updateNovaLeadData({ clientType });
-    setStep(step + 1);
   };
 
   const updateLeadForm = (field, value) => {
@@ -2913,32 +2887,7 @@ function App() {
     setSubmittedLead(null);
   };
 
-  const goBack = () => {
-    setStep(step - 1);
-    setLeadError("");
-    setLeadSubmitted(false);
-  };
-
   const resetNova = () => {
-    setStep(0);
-    setAnswers({
-      clientType: "",
-      service: "",
-      serviceLabel: "",
-      startTime: "",
-      startTimeLabel: "",
-      readiness: "",
-      readinessLabel: "",
-      otherReason: "",
-      isServiceFit: null,
-      otherAnalysis: "",
-      detectedService: "",
-      otherLeadStatus: "",
-      requiresHumanReview: false,
-    });
-    setOtherReasonText("");
-    setOtherError("");
-    setShowOtherReview(false);
     setLeadForm({
       name: "",
       phone: "",
@@ -2949,6 +2898,8 @@ function App() {
     setLeadError("");
     setLeadSubmitted(false);
     setSubmittedLead(null);
+    setEmergencySubmitting(false);
+    novaEmergencySubmitRef.current = null;
     setQuoteMode(false);
     setQuoteForm({
       name: "",
@@ -2964,183 +2915,105 @@ function App() {
     });
   };
 
-  const getLeadStatus = () => {
-    if (answers.clientType === "Other" && answers.otherLeadStatus) {
-      return answers.otherLeadStatus;
-    }
-
-    if (
-      answers.startTime === "As soon as possible" &&
-      answers.readiness === "I am ready to talk"
-    ) {
-      return "HOT LEAD";
-    }
-
-    if (
-      answers.startTime === "This week" ||
-      answers.startTime === "This month" ||
-      answers.readiness === "I need an estimate"
-    ) {
-      return "WARM LEAD";
-    }
-
-    return "COLD LEAD";
-  };
-
-  const continueFromOther = () => {
-    const trimmedReason = otherReasonText.trim();
-
-    if (!trimmedReason) {
-      setOtherError(t("otherEmptyError"));
-      return;
-    }
-
-    const analysis = analyzeOtherReason(trimmedReason);
-
-    setAnswers({
-      ...answers,
-      clientType: "Other",
-      service: analysis.detectedService,
-      serviceLabel: analysis.detectedService,
-      otherReason: trimmedReason,
-      isServiceFit: analysis.isServiceFit,
-      otherAnalysis: analysis.otherAnalysis,
-      detectedService: analysis.detectedService,
-      otherLeadStatus: analysis.leadStatus,
-      requiresHumanReview: analysis.requiresHumanReview,
-    });
-
-    setOtherError("");
-
-    if (!analysis.isServiceFit) {
-      updateNovaLeadData({
-        clientType: "Other",
-        service: analysis.detectedService,
-        projectDescription: trimmedReason,
-      });
-      setShowOtherReview(true);
-      return;
-    }
-
-    setShowOtherReview(false);
-    updateNovaLeadData({
-      clientType: "Other",
-      service: analysis.detectedService,
-      projectDescription: trimmedReason,
-    });
-    setStep(2);
-  };
-
-  const sendOtherToCustomerService = () => {
-    setAnswers({
-      ...answers,
-      clientType: "Other",
-      service: "Needs customer service review",
-      serviceLabel: "Needs customer service review",
-      otherReason: otherReasonText.trim(),
-      isServiceFit: false,
-      otherAnalysis: companyKnowledge.escalationRules.customerServiceReview,
-      detectedService: "Needs customer service review",
-      otherLeadStatus: "NEEDS REVIEW",
-      requiresHumanReview: true,
-    });
-    setShowOtherReview(false);
-    setOtherError("");
-    updateNovaLeadData({
-      clientType: "Other",
-      service: "Needs customer service review",
-      projectDescription: otherReasonText.trim(),
-    });
-    setStep(4);
-  };
-
   const handleLeadSubmit = async () => {
+    if (emergencySubmitting || leadSubmitted || novaEmergencySubmitRef.current !== null) {
+      return;
+    }
+
+    const emailValue = leadForm.email.trim();
+
     if (!leadForm.name.trim()) {
       setLeadError(t("nameError"));
       setLeadSubmitted(false);
+      emergencyNameRef.current?.focus();
       return;
     }
 
-    if (!leadForm.phone.trim() && !leadForm.email.trim()) {
+    if (!leadForm.phone.trim()) {
       setLeadError(t("phoneError"));
       setLeadSubmitted(false);
+      emergencyPhoneRef.current?.focus();
       return;
     }
 
-    const serviceLabel =
-      answers.serviceLabel || getServiceLabel(answers.clientType, answers.service, language);
+    if (emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      setLeadError(t("novaEmergencyEmailError"));
+      setLeadSubmitted(false);
+      emergencyEmailRef.current?.focus();
+      return;
+    }
 
-    const leadData = {
+    const emergencyLeadData = {
       name: leadForm.name.trim(),
       phone: leadForm.phone.trim(),
-      email: leadForm.email.trim(),
+      email: emailValue,
       projectLocation: leadForm.projectLocation.trim(),
       message: leadForm.message.trim(),
       projectDescription: leadForm.message.trim(),
-      clientType: answers.clientType,
-      service: answers.service,
-      serviceLabel,
-      startTime: answers.startTime,
-      startTimeLabel: answers.startTimeLabel,
-      readiness: answers.readiness,
-      readinessLabel: answers.readinessLabel,
-      leadStatus: getLeadStatus(),
-      otherReason: answers.otherReason,
-      isServiceFit: answers.isServiceFit,
-      otherAnalysis: answers.otherAnalysis,
-      detectedService: answers.detectedService,
-      requiresHumanReview: answers.requiresHumanReview,
       language: currentLanguage,
       createdAt: new Date().toISOString(),
     };
 
     updateNovaLeadData({
-      name: leadData.name,
-      phone: leadData.phone,
-      email: leadData.email,
-      projectLocation: leadData.projectLocation,
-      clientType: leadData.clientType,
-      service: leadData.serviceLabel || leadData.service,
-      projectDescription: leadData.message,
+      name: emergencyLeadData.name,
+      phone: emergencyLeadData.phone,
+      email: emergencyLeadData.email,
+      projectLocation: emergencyLeadData.projectLocation,
+      projectDescription: emergencyLeadData.message,
     });
 
-    try {
-      const basicResponse = await sendToNovaBasicLead({
-        ...leadData,
-        service: leadData.serviceLabel || leadData.service,
-      });
-      const leadWithBasicResponse = {
-        ...leadData,
-        basicReply: normalizeNovaIdentityText(basicResponse.reply) || t("basicFinalThanks"),
-        basicMode: true,
-        basicLeadStatus: basicResponse.leadStatus || "",
-        basicMissingFields: basicResponse.missingFields || [],
-        isValidLead: Boolean(basicResponse.isValidLead),
-      };
+    const requestSessionId = activeNovaSessionRef.current;
+    const requestGeneration = novaRequestGenerationRef.current;
+    novaEmergencySubmitRef.current = requestGeneration;
+    setEmergencySubmitting(true);
+    setLeadError("");
 
-      if (!basicResponse.isValidLead) {
-        setLeadError(t("basicMissingInfo"));
-        setLeadSubmitted(false);
+    try {
+      const emergencyResponse = await sendNovaEmergencyContact(
+        {
+          request_type: "EMERGENCY_CONTACT",
+          client_id: NOVA_CLIENT_ID,
+          source: "nova_emergency_form",
+          language: currentLanguage,
+          session_id: requestSessionId,
+          name: emergencyLeadData.name,
+          phone: emergencyLeadData.phone,
+          email: emergencyLeadData.email,
+          project_location: emergencyLeadData.projectLocation,
+          message: emergencyLeadData.message,
+        },
+        { sessionId: requestSessionId, generation: requestGeneration },
+      );
+
+      if (!isNovaRequestCurrent(requestSessionId, requestGeneration)) {
         return;
       }
 
-      trackNovaLeadProgress(
-        {
-          ...leadData,
-          service: leadData.serviceLabel || leadData.service,
-          leadStatus: basicResponse.leadStatus || leadData.leadStatus,
-          lead_status: basicResponse.leadStatus || leadData.leadStatus,
-        },
-        basicResponse,
-      );
-      const storedLeads = JSON.parse(localStorage.getItem("novaLeads") || "[]");
-      localStorage.setItem("novaLeads", JSON.stringify([...storedLeads, leadWithBasicResponse]));
-      setSubmittedLead(leadWithBasicResponse);
+      setSubmittedLead({
+        ...emergencyLeadData,
+        emergencyReply:
+          emergencyResponse.message ||
+          emergencyResponse.reply ||
+          emergencyResponse.data?.message ||
+          t("novaEmergencySuccess"),
+      });
       setLeadSubmitted(true);
       setLeadError("");
-    } catch {
-      setLeadError(t("novaBasicFallback"));
+    } catch (error) {
+      if (isIntentionalNovaCancel(error) || !isNovaRequestCurrent(requestSessionId, requestGeneration)) {
+        return;
+      }
+
+      setLeadError(t("novaEmergencySubmitError"));
       setLeadSubmitted(false);
+    } finally {
+      if (isNovaGenerationCurrent(requestSessionId, requestGeneration)) {
+        setEmergencySubmitting(false);
+      }
+
+      if (novaEmergencySubmitRef.current === requestGeneration) {
+        novaEmergencySubmitRef.current = null;
+      }
     }
   };
 
@@ -3220,16 +3093,6 @@ function App() {
     setLeadSubmitted(true);
     setLeadError("");
   };
-
-  const serviceOptions =
-    serviceOptionsByClientType[answers.clientType] ||
-    serviceOptionsByClientType["Property Owner"];
-
-  function getServiceLabel(clientType, service, currentLanguage) {
-    const option = (serviceOptionsByClientType[clientType] || [])
-      .find((serviceOption) => serviceOption.value === service);
-    return option ? option.label[currentLanguage] || option.label.en : service;
-  }
 
   return (
     <div className="page">
@@ -3519,7 +3382,14 @@ function App() {
                 )}
 
                 {(novaLoading || schedulingLoading) && !ratingPromptActive && (
-                  <p className="novaTyping">{t("novaTyping")}</p>
+                  <p className="novaTyping" aria-label={t("novaTyping")}>
+                    <span>{t("novaTyping").replace(/\.\.\.$/, "")}</span>
+                    <span className="novaTypingDots" aria-hidden="true">
+                      <span>.</span>
+                      <span>.</span>
+                      <span>.</span>
+                    </span>
+                  </p>
                 )}
 
                 {!ratingPromptActive && !ratingThanksVisible && (
@@ -3679,232 +3549,79 @@ function App() {
                 {leadError && <p className="smallText">{leadError}</p>}
               </>
             )}
-            {isNovaBasicModeActive && novaSmartFallbackActive && (
-              <div className="leadMessage cold">
-                <p>{t("novaBasicFallback")}</p>
-              </div>
-            )}
-
-            {isNovaBasicModeActive && step > 0 && !leadSubmitted && (
-              <button className="backButton" onClick={goBack}>
-                ← {t("back")}
-              </button>
-            )}
-
-            {isNovaBasicModeActive && step === 0 && (
+            {isNovaEmergencyModeActive && (
               <>
-                <p className="smallText">{t("initialNovaPrompt")}</p>
-
-                <p>{t("clientQuestion")}</p>
-
-                {clientTypes.map((clientType) => (
-                  <button
-                    key={clientType.value}
-                    onClick={() => updateClientType(clientType.value)}
-                  >
-                    {getLabel(clientType)}
-                  </button>
-                ))}
-              </>
-            )}
-
-            {isNovaBasicModeActive && step === 1 && answers.clientType === "Other" && (
-              <>
-                <p>{t("otherQuestion")}</p>
-
-                <div className="otherReasonBox">
-                  <textarea
-                    placeholder={t("otherPlaceholder")}
-                    value={otherReasonText}
-                    onChange={(event) => {
-                      setOtherReasonText(event.target.value);
-                      setOtherError("");
-                      setShowOtherReview(false);
-                    }}
-                  ></textarea>
+                <div className="leadMessage cold">
+                  <p>{t("novaEmergencyIntro")}</p>
                 </div>
 
-                {otherError && <p className="smallText">{otherError}</p>}
-
-                {showOtherReview && (
-                  <div className="leadMessage cold">
-                    <p>{t("otherNotFit")}</p>
+                {leadSubmitted && submittedLead ? (
+                  <div className="confirmationPanel">
+                    <strong>{submittedLead.emergencyReply || t("novaEmergencySuccess")}</strong>
                   </div>
-                )}
-
-                {showOtherReview ? (
-                  <>
-                    <button onClick={sendOtherToCustomerService}>
-                      {t("sendCustomerService")}
-                    </button>
-                    <button className="resetButton" onClick={resetNova}>
-                      {t("startNewRequest")}
-                    </button>
-                  </>
                 ) : (
-                  <button onClick={continueFromOther}>{t("continue")}</button>
+                  <>
+                    <div className="leadForm">
+                      <label>
+                        {t("novaEmergencyRecipient")}
+                        <input
+                          value={NOVA_EMERGENCY_RECIPIENT}
+                          disabled
+                          readOnly
+                        />
+                      </label>
+                      <input
+                        ref={emergencyNameRef}
+                        placeholder={t("name")}
+                        value={leadForm.name}
+                        maxLength={120}
+                        onChange={(event) => updateLeadForm("name", event.target.value)}
+                      />
+                      <input
+                        ref={emergencyPhoneRef}
+                        placeholder={t("phone")}
+                        value={leadForm.phone}
+                        maxLength={40}
+                        inputMode="tel"
+                        autoComplete="tel"
+                        onChange={(event) => updateLeadForm("phone", event.target.value)}
+                      />
+                      <input
+                        ref={emergencyEmailRef}
+                        placeholder={t("email")}
+                        value={leadForm.email}
+                        maxLength={160}
+                        inputMode="email"
+                        autoComplete="email"
+                        onChange={(event) => updateLeadForm("email", event.target.value)}
+                      />
+                      <input
+                        placeholder={t("projectLocation")}
+                        value={leadForm.projectLocation}
+                        maxLength={250}
+                        onChange={(event) =>
+                          updateLeadForm("projectLocation", event.target.value)
+                        }
+                      />
+                      <textarea
+                        placeholder={t("message")}
+                        value={leadForm.message}
+                        maxLength={3000}
+                        onChange={(event) => updateLeadForm("message", event.target.value)}
+                      ></textarea>
+
+                      <button
+                        type="button"
+                        onClick={handleLeadSubmit}
+                        disabled={emergencySubmitting}
+                      >
+                        {emergencySubmitting ? t("novaEmergencySending") : t("novaEmergencySend")}
+                      </button>
+                    </div>
+
+                    {leadError && <p className="smallText">{leadError}</p>}
+                  </>
                 )}
-              </>
-            )}
-
-            {isNovaBasicModeActive && step === 1 && answers.clientType !== "Other" && (
-              <>
-                <p>{t("workQuestion")}</p>
-
-                {serviceOptions.map((service) => (
-                  <button
-                    key={service.value}
-                    onClick={() =>
-                      updateAnswer("service", service.value, getLabel(service))
-                    }
-                  >
-                    {getLabel(service)}
-                  </button>
-                ))}
-              </>
-            )}
-
-            {isNovaBasicModeActive && step === 2 && isFullHouseConstruction(answers.service) && (
-              <>
-                <p>{t("fullHomeMessage")}</p>
-
-                <button
-                  onClick={() =>
-                    updateAnswer(
-                      "service",
-                      "Subcontractor Support",
-                      language === "es" ? "Apoyo de subcontrato" : "Subcontractor Support",
-                    )
-                  }
-                >
-                  {t("subcontractInstead")}
-                </button>
-
-                <button onClick={resetNova}>{t("startOver")}</button>
-              </>
-            )}
-
-            {isNovaBasicModeActive && step === 2 && !isFullHouseConstruction(answers.service) && (
-              <>
-                <p>{t("startQuestion")}</p>
-
-                {text.startTimes.map(([value, label]) => (
-                  <button
-                    key={value}
-                    onClick={() => updateAnswer("startTime", value, label)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </>
-            )}
-
-            {isNovaBasicModeActive && step === 3 && (
-              <>
-                <p>{t("readinessQuestion")}</p>
-
-                {text.readinessOptions.map(([value, label]) => (
-                  <button
-                    key={value}
-                    onClick={() => updateAnswer("readiness", value, label)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </>
-            )}
-
-            {isNovaBasicModeActive && step >= 4 && leadSubmitted && submittedLead && (
-              <>
-                <div className="confirmationPanel">
-                  <strong>{t("basicFinalThanks")}</strong>
-                </div>
-
-                <div className="finalActions">
-                  <button onClick={resetNova}>{t("startNewRequest")}</button>
-                  <button className="closeNovaButton" onClick={closeNovaWidget}>
-                    {t("closeNova")}
-                  </button>
-                </div>
-              </>
-            )}
-
-            {isNovaBasicModeActive && step >= 4 && !leadSubmitted && (
-              <>
-                <p>
-                  {t("basedOnAnswers")}{" "}
-                  <strong>{formatStatus(getLeadStatus())}</strong>
-                </p>
-
-                {getLeadStatus() === "HOT LEAD" && (
-                  <div className="leadMessage hot">
-                    <strong>{t("hotTitle")}</strong>
-                    <p>{t("hotText")}</p>
-                  </div>
-                )}
-
-                {getLeadStatus() === "WARM LEAD" && (
-                  <div className="leadMessage warm">
-                    <strong>{t("warmTitle")}</strong>
-                    <p>{t("warmText")}</p>
-                  </div>
-                )}
-
-                {getLeadStatus() === "COLD LEAD" && (
-                  <div className="leadMessage cold">
-                    <strong>{t("coldTitle")}</strong>
-                    <p>{t("coldText")}</p>
-                  </div>
-                )}
-
-                {getLeadStatus() === "NEEDS REVIEW" && (
-                  <div className="leadMessage cold">
-                    <strong>{t("reviewTitle")}</strong>
-                    <p>{t("reviewText")}</p>
-                  </div>
-                )}
-
-                <p>{t("completeDetails")}</p>
-
-                <div className="leadForm">
-                  <input
-                    placeholder={t("name")}
-                    value={leadForm.name}
-                    onChange={(event) => updateLeadForm("name", event.target.value)}
-                  />
-                  <input
-                    placeholder={t("phone")}
-                    value={leadForm.phone}
-                    onChange={(event) => updateLeadForm("phone", event.target.value)}
-                  />
-                  <input
-                    placeholder={t("email")}
-                    value={leadForm.email}
-                    onChange={(event) => updateLeadForm("email", event.target.value)}
-                  />
-                  <input
-                    placeholder={t("projectLocation")}
-                    value={leadForm.projectLocation}
-                    onChange={(event) =>
-                      updateLeadForm("projectLocation", event.target.value)
-                    }
-                  />
-                  <textarea
-                    placeholder={t("message")}
-                    value={leadForm.message}
-                    onChange={(event) => updateLeadForm("message", event.target.value)}
-                  ></textarea>
-
-                  <button onClick={handleLeadSubmit}>{t("submitProject")}</button>
-                </div>
-
-                {leadError && <p className="smallText">{leadError}</p>}
-
-                <button className="resetButton" onClick={resetNova}>
-                  {t("startNewRequest")}
-                </button>
-
-                <p className="smallText">{t("laterConnection")}</p>
               </>
             )}
           </div>

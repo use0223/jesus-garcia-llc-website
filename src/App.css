@@ -1403,6 +1403,44 @@ nav a:hover {
   color: #6b4a32 !important;
 }
 
+.novaTypingDots {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.novaTypingDots span {
+  display: inline-block;
+  animation: novaTypingDotWave 1.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+.novaTypingDots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.novaTypingDots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes novaTypingDotWave {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+
+  30% {
+    transform: translateY(-0.22em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .novaTypingDots span {
+    animation: none;
+    transform: none;
+  }
+}
+
 .nova-size-large30 .novaTyping {
   font-size: 18px;
 }
@@ -1663,22 +1701,6 @@ nav a:hover {
   transform: translateY(0);
 }
 
-.backButton {
-  width: auto !important;
-  padding: 8px 12px !important;
-  margin: 0 0 12px !important;
-  background: rgba(31, 37, 34, 0.08) !important;
-  color: #3a2417 !important;
-  border: 1px solid rgba(58, 36, 23, 0.14) !important;
-  box-shadow: none !important;
-  text-align: center !important;
-}
-
-.backButton:hover {
-  background: rgba(126, 61, 28, 0.12) !important;
-  color: #7e3d1c !important;
-}
-
 .leadMessage {
   padding: 17px;
   border-radius: 8px;
@@ -1687,16 +1709,6 @@ nav a:hover {
 
 .leadMessage p {
   margin-bottom: 0;
-}
-
-.leadMessage.hot {
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.35);
-}
-
-.leadMessage.warm {
-  background: rgba(249, 115, 22, 0.12);
-  border: 1px solid rgba(249, 115, 22, 0.35);
 }
 
 .leadMessage.cold {
@@ -1737,6 +1749,7 @@ nav a:hover {
   resize: vertical;
 }
 
+.leadForm label,
 .quoteForm label {
   display: grid;
   gap: 7px;
@@ -1744,28 +1757,16 @@ nav a:hover {
   font-weight: 800;
 }
 
-.otherReasonBox {
-  display: grid;
-  margin: 12px 0;
-}
-
-.otherReasonBox textarea {
-  width: 100%;
-  min-height: 132px;
-  padding: 16px;
-  border: 1px solid #d6b999;
-  border-radius: 8px;
-  font-family: inherit;
-  background: #ffffff;
-  color: #1c120b;
-  resize: vertical;
-  font-size: 16px;
-}
-
 .leadForm button,
 .quoteForm button {
   background: linear-gradient(135deg, #b46a2c, #d99045);
   text-align: center;
+}
+
+.leadForm input:disabled {
+  background: #f4efe8;
+  color: #5b4536;
+  cursor: not-allowed;
 }
 
 .confirmationPanel {
@@ -1804,12 +1805,6 @@ nav a:hover {
 }
 
 .closeNovaButton {
-  background: #6b4a32 !important;
-  text-align: center !important;
-}
-
-.resetButton {
-  margin-top: 10px !important;
   background: #6b4a32 !important;
   text-align: center !important;
 }
@@ -2039,10 +2034,6 @@ nav a:hover {
 
   .novaRatingButtons .novaRatingButton:last-child {
     grid-column: auto;
-  }
-
-  .backButton {
-    width: auto !important;
   }
 
   .floatingNova {
