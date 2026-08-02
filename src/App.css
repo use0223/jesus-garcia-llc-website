@@ -1406,11 +1406,13 @@ nav a:hover {
 .novaTypingDots {
   display: inline-flex;
   align-items: baseline;
+  vertical-align: baseline;
 }
 
 .novaTypingDots span {
   display: inline-block;
-  animation: novaTypingDotWave 1.2s ease-in-out infinite;
+  line-height: 1;
+  animation: novaTypingDotWave 0.9s ease-in-out infinite;
   will-change: transform;
 }
 
@@ -1430,7 +1432,7 @@ nav a:hover {
   }
 
   30% {
-    transform: translateY(-0.22em);
+    transform: translateY(-4px);
   }
 }
 
