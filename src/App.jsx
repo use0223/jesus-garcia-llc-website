@@ -952,6 +952,7 @@ const NOVA_LEAD_DATA_KEY = `novaLeadData_${NOVA_CLIENT_ID}`;
 const NOVA_ENDED_CHATS_KEY = `novaEndedChats_${NOVA_CLIENT_ID}`;
 const NOVA_CHAT_RATINGS_KEY = `novaChatRatings_${NOVA_CLIENT_ID}`;
 const NOVA_CHAT_STATE_KEY = `novaChatState_${NOVA_CLIENT_ID}`;
+const NOVA_CONVERSATION_LANGUAGE_KEY = `novaConversationLanguage_${NOVA_CLIENT_ID}`;
 const NOVA_META_TRACKING_KEY = `novaMetaTracking_${NOVA_CLIENT_ID}`;
 const LEGACY_NOVA_STORAGE_KEYS = [
   "novaSessionId",
@@ -1245,6 +1246,16 @@ const readNovaChatEndedForCurrentSession = () => {
   return Boolean(chatState.sessionId && chatState.sessionId === sessionId && chatState.ended);
 };
 
+const readNovaConversationLanguageForCurrentSession = () => {
+  const languageState = readStorageJson(NOVA_CONVERSATION_LANGUAGE_KEY, {});
+  const sessionId = getCurrentNovaSessionId();
+
+  return languageState.sessionId === sessionId &&
+    (languageState.language === "es" || languageState.language === "en")
+    ? languageState.language
+    : "";
+};
+
 const containsLegacyNovaIdentity = (value) => {
   const normalizedValue = String(value || "").toLowerCase();
   return LEGACY_NOVA_IDENTITY_MARKERS.some((marker) => normalizedValue.includes(marker));
@@ -1524,6 +1535,9 @@ function App() {
   const [novaChatEnded, setNovaChatEnded] = useState(readNovaChatEndedForCurrentSession);
   const [lastNovaResponse, setLastNovaResponse] = useState(null);
   const [lastUserSmartMessage, setLastUserSmartMessage] = useState("");
+  const [novaConversationLanguage, setNovaConversationLanguage] = useState(
+    readNovaConversationLanguageForCurrentSession,
+  );
   const [novaSizeMode, setNovaSizeMode] = useState("large60");
   const [schedulingSlots, setSchedulingSlots] = useState([]);
   const [schedulingLoading, setSchedulingLoading] = useState(false);
@@ -1535,8 +1549,13 @@ function App() {
   const activeNovaSessionRef = useRef(novaSessionId);
   const novaChatEndedRef = useRef(novaChatEnded);
   const novaRequestGenerationRef = useRef(0);
+  const novaAutoCloseTokenRef = useRef(0);
   const novaSubmitInFlightRef = useRef(null);
   const novaEmergencySubmitRef = useRef(null);
+  const novaLoadingRef = useRef(novaLoading);
+  const schedulingLoadingRef = useRef(schedulingLoading);
+  const novaSchedulingOperationsRef = useRef(new Set());
+  const novaConversationLanguageRef = useRef(novaConversationLanguage);
   const pendingNovaRequestsRef = useRef(new Map());
   const emergencyNameRef = useRef(null);
   const emergencyPhoneRef = useRef(null);
@@ -1545,6 +1564,10 @@ function App() {
   const text = translations[language];
   const t = (key) => text[key];
   const currentLanguage = language === "en" ? "en" : "es";
+  const effectiveNovaLanguage = novaConversationLanguage || currentLanguage;
+  const novaFormText = translations[effectiveNovaLanguage] || text;
+  const novaFormT = (key) => novaFormText[key];
+  const getEffectiveNovaLanguage = () => novaConversationLanguageRef.current || currentLanguage;
   const formatStatus = (status) => text.statusLabels[status] || status;
   const formatNovaMessage = (key, values = {}) =>
     Object.entries(values).reduce(
@@ -1656,6 +1679,8 @@ function App() {
   };
 
   const cancelNovaAutoClose = () => {
+    novaAutoCloseTokenRef.current += 1;
+
     if (novaAutoCloseTimerRef.current) {
       window.clearTimeout(novaAutoCloseTimerRef.current);
       novaAutoCloseTimerRef.current = null;
@@ -1682,6 +1707,28 @@ function App() {
     if (novaSubmitInFlightRef.current === generation) {
       novaSubmitInFlightRef.current = null;
     }
+  };
+
+  const hasActiveNovaWork = () =>
+    novaSubmitInFlightRef.current !== null ||
+    pendingNovaRequestsRef.current.size > 0 ||
+    novaLoadingRef.current ||
+    schedulingLoadingRef.current ||
+    novaSchedulingOperationsRef.current.size > 0;
+
+  const saveNovaConversationLanguage = (nextLanguage, sessionId = activeNovaSessionRef.current) => {
+    const safeLanguage = nextLanguage === "es" ? "es" : "en";
+    novaConversationLanguageRef.current = safeLanguage;
+    setNovaConversationLanguage(safeLanguage);
+    localStorage.setItem(
+      NOVA_CONVERSATION_LANGUAGE_KEY,
+      JSON.stringify({
+        sessionId,
+        language: safeLanguage,
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+    return safeLanguage;
   };
 
   const markNovaChatEndedForSession = (sessionId, ended) => {
@@ -1934,8 +1981,16 @@ function App() {
   const scheduleNovaAutoClose = (delayMs = 10000) => {
     cancelNovaAutoClose();
     const sessionId = activeNovaSessionRef.current;
+    const autoCloseToken = novaAutoCloseTokenRef.current + 1;
+    novaAutoCloseTokenRef.current = autoCloseToken;
+
     novaAutoCloseTimerRef.current = window.setTimeout(() => {
-      if (isNovaSessionActive(sessionId)) {
+      const canClose =
+        isNovaSessionActive(sessionId) &&
+        novaAutoCloseTokenRef.current === autoCloseToken &&
+        !hasActiveNovaWork();
+
+      if (canClose) {
         setChatOpen(false);
       }
 
@@ -1950,6 +2005,18 @@ function App() {
   useEffect(() => {
     novaChatEndedRef.current = novaChatEnded;
   }, [novaChatEnded]);
+
+  useEffect(() => {
+    novaLoadingRef.current = novaLoading;
+  }, [novaLoading]);
+
+  useEffect(() => {
+    schedulingLoadingRef.current = schedulingLoading;
+  }, [schedulingLoading]);
+
+  useEffect(() => {
+    novaConversationLanguageRef.current = novaConversationLanguage;
+  }, [novaConversationLanguage]);
 
   useEffect(
     () => () => {
@@ -2021,7 +2088,9 @@ function App() {
     novaRequestGenerationRef.current += 1;
     novaSubmitInFlightRef.current = null;
     novaEmergencySubmitRef.current = null;
+    novaSchedulingOperationsRef.current.clear();
     markNovaChatEndedForSession(nextSessionId, false);
+    saveNovaConversationLanguage(currentLanguage, nextSessionId);
     setNovaSessionId(nextSessionId);
     saveConversationHistory([]);
     saveNovaMessages([]);
@@ -2034,6 +2103,7 @@ function App() {
       message: "",
     });
     setNovaInput("");
+    novaLoadingRef.current = false;
     setNovaLoading(false);
     setNovaChatEnded(false);
     setNovaSmartFallbackActive(false);
@@ -2044,6 +2114,7 @@ function App() {
     setLastNovaResponse(null);
     setLastUserSmartMessage("");
     setSchedulingSlots([]);
+    schedulingLoadingRef.current = false;
     setSchedulingLoading(false);
     setRatingPromptActive(false);
     setRatingThanksVisible(false);
@@ -2071,13 +2142,16 @@ function App() {
     novaRequestGenerationRef.current += 1;
     novaSubmitInFlightRef.current = null;
     novaEmergencySubmitRef.current = null;
+    novaSchedulingOperationsRef.current.clear();
     cancelPendingNovaRequests("INTENTIONAL_CANCEL");
     cancelNovaAutoClose();
     cancelNovaRatingTimer();
     trackNovaCompletedAndClosed();
     setRatingPromptActive(false);
     setNovaInput("");
+    novaLoadingRef.current = false;
     setNovaLoading(false);
+    schedulingLoadingRef.current = false;
     setSchedulingLoading(false);
     setEmergencySubmitting(false);
     setNovaChatEnded(true);
@@ -2139,12 +2213,14 @@ function App() {
 
       setNovaInput("");
       setNovaChatEnded(true);
+      novaLoadingRef.current = false;
       setNovaLoading(false);
       setNovaSmartFallbackActive(false);
       setLeadError("");
       setLastNovaResponse(null);
       setLastUserSmartMessage("");
       setSchedulingSlots([]);
+      schedulingLoadingRef.current = false;
       setSchedulingLoading(false);
       setRatingThanksVisible(false);
       setChatOpen(false);
@@ -2275,20 +2351,29 @@ function App() {
   const requestSchedulingSlots = async (leadData, baseMessages = novaMessages, baseHistory = conversationHistory) => {
     const requestSessionId = activeNovaSessionRef.current;
     const requestGeneration = novaRequestGenerationRef.current;
-    setSchedulingLoading(true);
-    trackMetaOnce(
-      "scheduling_started",
-      "custom",
-      "JG_NOVA_SCHEDULING_STARTED",
-      {
-        lead_status: leadData.leadStatus || leadData.lead_status || "",
-        next_action: "SCHEDULE_CALL",
-        scheduling_mode: "GET_SLOTS",
-      },
-      { sessionId: novaSessionId },
-    );
+    const schedulingOperationId = createNovaRequestId();
 
     try {
+      novaSchedulingOperationsRef.current.add(schedulingOperationId);
+      schedulingLoadingRef.current = true;
+      setSchedulingLoading(true);
+
+      try {
+        trackMetaOnce(
+          "scheduling_started",
+          "custom",
+          "JG_NOVA_SCHEDULING_STARTED",
+          {
+            lead_status: leadData.leadStatus || leadData.lead_status || "",
+            next_action: "SCHEDULE_CALL",
+            scheduling_mode: "GET_SLOTS",
+          },
+          { sessionId: novaSessionId },
+        );
+      } catch (trackingError) {
+        console.warn("NOVA scheduling tracking failed before slots request.", trackingError);
+      }
+
       const schedulingResponse = await sendToNovaScheduling({
         schedulingMode: "GET_SLOTS",
         leadData,
@@ -2337,8 +2422,12 @@ function App() {
       };
       saveNovaMessages([...baseMessages, schedulingErrorMessage]);
     } finally {
+      novaSchedulingOperationsRef.current.delete(schedulingOperationId);
+      const hasSchedulingOperations = novaSchedulingOperationsRef.current.size > 0;
+      schedulingLoadingRef.current = hasSchedulingOperations;
+
       if (isNovaGenerationCurrent(requestSessionId, requestGeneration)) {
-        setSchedulingLoading(false);
+        setSchedulingLoading(hasSchedulingOperations);
       }
     }
   };
@@ -2346,37 +2435,47 @@ function App() {
   const bookSchedulingSlot = async (slot) => {
     const requestSessionId = activeNovaSessionRef.current;
     const requestGeneration = novaRequestGenerationRef.current;
-    cancelNovaAutoClose();
-    const selectedTime = formatSlotTimeLabel(slot);
-    const selectedDate = new Date(slot.start);
-    const selectedDay = Number.isNaN(selectedDate.getTime())
-      ? ""
-      : selectedDate.toISOString().slice(0, 10);
-    const selectionMessage = {
-      role: "user",
-      content: formatNovaMessage("bookingSelection", { time: selectedTime }),
-      createdAt: new Date().toISOString(),
-    };
-    const messagesWithSelection = [...novaMessages, selectionMessage];
-    const historyWithSelection = [...conversationHistory, selectionMessage];
-
-    setSchedulingSlots([]);
-    saveNovaMessages(messagesWithSelection);
-    saveConversationHistory(historyWithSelection);
-    setSchedulingLoading(true);
-    trackMetaOnce(
-      `slot_selected:${slot.start || slot.label || selectedTime}`,
-      "custom",
-      "JG_NOVA_SLOT_SELECTED",
-      {
-        scheduling_mode: "BOOK_SLOT",
-        selected_day: selectedDay,
-        selected_time_window: selectedTime,
-      },
-      { sessionId: novaSessionId },
-    );
+    const schedulingOperationId = createNovaRequestId();
+    let messagesWithSelection = novaMessages;
 
     try {
+      novaSchedulingOperationsRef.current.add(schedulingOperationId);
+      cancelNovaAutoClose();
+      const selectedTime = formatSlotTimeLabel(slot);
+      const selectedDate = new Date(slot.start);
+      const selectedDay = Number.isNaN(selectedDate.getTime())
+        ? ""
+        : selectedDate.toISOString().slice(0, 10);
+      const selectionMessage = {
+        role: "user",
+        content: formatNovaMessage("bookingSelection", { time: selectedTime }),
+        createdAt: new Date().toISOString(),
+      };
+      messagesWithSelection = [...novaMessages, selectionMessage];
+      const historyWithSelection = [...conversationHistory, selectionMessage];
+
+      setSchedulingSlots([]);
+      saveNovaMessages(messagesWithSelection);
+      saveConversationHistory(historyWithSelection);
+      schedulingLoadingRef.current = true;
+      setSchedulingLoading(true);
+
+      try {
+        trackMetaOnce(
+          `slot_selected:${slot.start || slot.label || selectedTime}`,
+          "custom",
+          "JG_NOVA_SLOT_SELECTED",
+          {
+            scheduling_mode: "BOOK_SLOT",
+            selected_day: selectedDay,
+            selected_time_window: selectedTime,
+          },
+          { sessionId: novaSessionId },
+        );
+      } catch (trackingError) {
+        console.warn("NOVA slot selection tracking failed before booking request.", trackingError);
+      }
+
       const storedLeadData = readStorageJson(NOVA_LEAD_DATA_KEY, {});
       const latestLeadData = getLeadDataFromConversationHistory(historyWithSelection, {
         ...novaLeadData,
@@ -2464,26 +2563,34 @@ function App() {
           },
         });
         if (hasAppointmentConfirmation) {
-          trackMetaOnce("call_scheduled_standard", "standard", "Schedule", {
-            lead_status: "SCHEDULED",
-            service_category: getSafeServiceCategory(latestLeadData.service),
-            scheduling_mode: "BOOK_SLOT",
-            appointment_confirmed: true,
-          }, { sessionId: novaSessionId });
-          trackMetaOnce("call_scheduled_custom", "custom", "JG_NOVA_CALL_SCHEDULED", {
-            lead_status: "SCHEDULED",
-            service_category: getSafeServiceCategory(latestLeadData.service),
-            scheduling_mode: "BOOK_SLOT",
-            appointment_confirmed: true,
-          }, { sessionId: novaSessionId });
+          try {
+            trackMetaOnce("call_scheduled_standard", "standard", "Schedule", {
+              lead_status: "SCHEDULED",
+              service_category: getSafeServiceCategory(latestLeadData.service),
+              scheduling_mode: "BOOK_SLOT",
+              appointment_confirmed: true,
+            }, { sessionId: novaSessionId });
+            trackMetaOnce("call_scheduled_custom", "custom", "JG_NOVA_CALL_SCHEDULED", {
+              lead_status: "SCHEDULED",
+              service_category: getSafeServiceCategory(latestLeadData.service),
+              scheduling_mode: "BOOK_SLOT",
+              appointment_confirmed: true,
+            }, { sessionId: novaSessionId });
+          } catch (trackingError) {
+            console.warn("NOVA scheduled call tracking failed after booking.", trackingError);
+          }
         }
 
         if (hasOwnerNotificationSignal(schedulingResponse)) {
-          trackMetaOnce("owner_notified", "custom", "JG_NOVA_OWNER_NOTIFIED", {
-            lead_status: "SCHEDULED",
-            service_category: getSafeServiceCategory(latestLeadData.service),
-            scheduling_mode: "BOOK_SLOT",
-          }, { sessionId: novaSessionId });
+          try {
+            trackMetaOnce("owner_notified", "custom", "JG_NOVA_OWNER_NOTIFIED", {
+              lead_status: "SCHEDULED",
+              service_category: getSafeServiceCategory(latestLeadData.service),
+              scheduling_mode: "BOOK_SLOT",
+            }, { sessionId: novaSessionId });
+          } catch (trackingError) {
+            console.warn("NOVA owner notification tracking failed after booking.", trackingError);
+          }
         }
         // TODO: If backend does not expose notification_sent/owner_notified/email_sent,
         // keep this event off until that safe boolean is returned.
@@ -2501,7 +2608,9 @@ function App() {
         markNovaChatEndedForSession(requestSessionId, true);
         setRatingPromptActive(schedulingResponse.showRating === true);
         setSchedulingSlots([]);
+        novaLoadingRef.current = false;
         setNovaLoading(false);
+        schedulingLoadingRef.current = false;
         setSchedulingLoading(false);
         scheduleNovaAutoClose(getNovaAutoCloseDelayMs(schedulingResponse));
       }
@@ -2521,8 +2630,12 @@ function App() {
         appendAssistantMessageIfUnique(messagesWithSelection, errorMessage),
       );
     } finally {
+      novaSchedulingOperationsRef.current.delete(schedulingOperationId);
+      const hasSchedulingOperations = novaSchedulingOperationsRef.current.size > 0;
+      schedulingLoadingRef.current = hasSchedulingOperations;
+
       if (isNovaGenerationCurrent(requestSessionId, requestGeneration)) {
-        setSchedulingLoading(false);
+        setSchedulingLoading(hasSchedulingOperations);
       }
     }
   };
@@ -2542,10 +2655,17 @@ function App() {
     novaSubmitInFlightRef.current = requestGeneration;
     let currentSessionId = activeNovaSessionRef.current || novaSessionId || "";
     let nextMessagesForError = null;
+    let requestLanguage;
 
     try {
       currentSessionId = currentSessionId || getCurrentNovaSessionId() || createNovaSessionId();
       cancelNovaAutoClose();
+      requestLanguage = resolveNovaRequestLanguage({
+        message: trimmedMessage,
+        conversationHistory,
+        fallbackLanguage: currentLanguage,
+      });
+      saveNovaConversationLanguage(requestLanguage, currentSessionId);
 
       try {
         trackMetaOnce("first_message_standard", "standard", "Contact", {}, { sessionId: novaSessionId });
@@ -2645,15 +2765,11 @@ function App() {
         return;
       }
 
+      novaLoadingRef.current = true;
       setNovaLoading(true);
       console.log("NOVA mode:", novaSmartModeEnabled ? "SMART" : "BASIC");
       console.log("NOVA engine URL:", NOVA_FAST_CHAT_ENGINE_URL);
 
-      const requestLanguage = resolveNovaRequestLanguage({
-        message: trimmedMessage,
-        conversationHistory: payloadConversationHistory,
-        fallbackLanguage: currentLanguage,
-      });
       const novaResponse = await fetchNovaJson(
         {
           message: trimmedMessage,
@@ -2837,6 +2953,7 @@ function App() {
         : novaRequestGenerationRef.current === requestGeneration;
 
       if (isCurrentSubmit) {
+        novaLoadingRef.current = false;
         setNovaLoading(false);
         releaseNovaSubmitLock(requestGeneration);
       }
@@ -2920,24 +3037,25 @@ function App() {
       return;
     }
 
+    const emergencyLanguage = getEffectiveNovaLanguage();
     const emailValue = leadForm.email.trim();
 
     if (!leadForm.name.trim()) {
-      setLeadError(t("nameError"));
+      setLeadError(novaFormT("nameError"));
       setLeadSubmitted(false);
       emergencyNameRef.current?.focus();
       return;
     }
 
     if (!leadForm.phone.trim()) {
-      setLeadError(t("phoneError"));
+      setLeadError(novaFormT("phoneError"));
       setLeadSubmitted(false);
       emergencyPhoneRef.current?.focus();
       return;
     }
 
     if (emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
-      setLeadError(t("novaEmergencyEmailError"));
+      setLeadError(novaFormT("novaEmergencyEmailError"));
       setLeadSubmitted(false);
       emergencyEmailRef.current?.focus();
       return;
@@ -2950,7 +3068,7 @@ function App() {
       projectLocation: leadForm.projectLocation.trim(),
       message: leadForm.message.trim(),
       projectDescription: leadForm.message.trim(),
-      language: currentLanguage,
+      language: emergencyLanguage,
       createdAt: new Date().toISOString(),
     };
 
@@ -2974,7 +3092,7 @@ function App() {
           request_type: "EMERGENCY_CONTACT",
           client_id: NOVA_CLIENT_ID,
           source: "nova_emergency_form",
-          language: currentLanguage,
+          language: emergencyLanguage,
           session_id: requestSessionId,
           name: emergencyLeadData.name,
           phone: emergencyLeadData.phone,
@@ -2995,7 +3113,7 @@ function App() {
           emergencyResponse.message ||
           emergencyResponse.reply ||
           emergencyResponse.data?.message ||
-          t("novaEmergencySuccess"),
+          novaFormT("novaEmergencySuccess"),
       });
       setLeadSubmitted(true);
       setLeadError("");
@@ -3004,7 +3122,7 @@ function App() {
         return;
       }
 
-      setLeadError(t("novaEmergencySubmitError"));
+      setLeadError(novaFormT("novaEmergencySubmitError"));
       setLeadSubmitted(false);
     } finally {
       if (isNovaGenerationCurrent(requestSessionId, requestGeneration)) {
@@ -3552,18 +3670,18 @@ function App() {
             {isNovaEmergencyModeActive && (
               <>
                 <div className="leadMessage cold">
-                  <p>{t("novaEmergencyIntro")}</p>
+                  <p>{novaFormT("novaEmergencyIntro")}</p>
                 </div>
 
                 {leadSubmitted && submittedLead ? (
                   <div className="confirmationPanel">
-                    <strong>{submittedLead.emergencyReply || t("novaEmergencySuccess")}</strong>
+                    <strong>{submittedLead.emergencyReply || novaFormT("novaEmergencySuccess")}</strong>
                   </div>
                 ) : (
                   <>
                     <div className="leadForm">
                       <label>
-                        {t("novaEmergencyRecipient")}
+                        {novaFormT("novaEmergencyRecipient")}
                         <input
                           value={NOVA_EMERGENCY_RECIPIENT}
                           disabled
@@ -3572,14 +3690,14 @@ function App() {
                       </label>
                       <input
                         ref={emergencyNameRef}
-                        placeholder={t("name")}
+                        placeholder={novaFormT("name")}
                         value={leadForm.name}
                         maxLength={120}
                         onChange={(event) => updateLeadForm("name", event.target.value)}
                       />
                       <input
                         ref={emergencyPhoneRef}
-                        placeholder={t("phone")}
+                        placeholder={novaFormT("phone")}
                         value={leadForm.phone}
                         maxLength={40}
                         inputMode="tel"
@@ -3588,7 +3706,7 @@ function App() {
                       />
                       <input
                         ref={emergencyEmailRef}
-                        placeholder={t("email")}
+                        placeholder={novaFormT("email")}
                         value={leadForm.email}
                         maxLength={160}
                         inputMode="email"
@@ -3596,7 +3714,7 @@ function App() {
                         onChange={(event) => updateLeadForm("email", event.target.value)}
                       />
                       <input
-                        placeholder={t("projectLocation")}
+                        placeholder={novaFormT("projectLocation")}
                         value={leadForm.projectLocation}
                         maxLength={250}
                         onChange={(event) =>
@@ -3604,7 +3722,7 @@ function App() {
                         }
                       />
                       <textarea
-                        placeholder={t("message")}
+                        placeholder={novaFormT("message")}
                         value={leadForm.message}
                         maxLength={3000}
                         onChange={(event) => updateLeadForm("message", event.target.value)}
@@ -3615,7 +3733,7 @@ function App() {
                         onClick={handleLeadSubmit}
                         disabled={emergencySubmitting}
                       >
-                        {emergencySubmitting ? t("novaEmergencySending") : t("novaEmergencySend")}
+                        {emergencySubmitting ? novaFormT("novaEmergencySending") : novaFormT("novaEmergencySend")}
                       </button>
                     </div>
 
