@@ -808,6 +808,7 @@ const getBookingOptions = (response = {}) => {
     response.bookingOptions,
     response.availableSlots,
     response.slots,
+    response.frontend?.available_slots,
     response.data?.bookingOptions,
     response.data?.availableSlots,
     response.data?.slots,
