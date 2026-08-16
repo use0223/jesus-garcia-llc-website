@@ -107,7 +107,15 @@ const hotKeywords = [
 
 const CLIENT_MEDIA_BASE = "/media/jesus-garcia-llc";
 const CLIENT_LOGO = `${CLIENT_MEDIA_BASE}/logo/logo.png`;
-const CLIENT_HERO = `${CLIENT_MEDIA_BASE}/hero/hero-cover.jpg`;
+const CLIENT_HERO = `${CLIENT_MEDIA_BASE}/services/framing/image-01.jpg`;
+const selectedWorkImages = [
+  `${CLIENT_MEDIA_BASE}/services/framing/image-01.jpg`,
+  `${CLIENT_MEDIA_BASE}/services/decks/image-03.jpg`,
+  `${CLIENT_MEDIA_BASE}/services/ceiling-paneling/image-01.jpg`,
+  `${CLIENT_MEDIA_BASE}/services/remodeling/image-01.jpg`,
+  `${CLIENT_MEDIA_BASE}/services/flooring/image-04.jpg`,
+  `${CLIENT_MEDIA_BASE}/services/doors/image-02.jpg`,
+];
 const createServiceMediaImages = (serviceFolder) =>
   Array.from(
     { length: 4 },
@@ -115,34 +123,30 @@ const createServiceMediaImages = (serviceFolder) =>
       `${CLIENT_MEDIA_BASE}/services/${serviceFolder}/image-${String(index + 1).padStart(2, "0")}.jpg`,
   );
 
-function MediaImage({ src, alt, className }) {
+function MediaImage({ src, alt, className, loading, decoding, fetchPriority }) {
   const [hasError, setHasError] = useState(false);
 
   if (hasError) {
     return <div className={`${className} mediaFallback`}>Pending client media</div>;
   }
 
-  return <img className={className} src={src} alt={alt} onError={() => setHasError(true)} />;
+  return (
+    <img
+      className={className}
+      src={src}
+      alt={alt}
+      loading={loading}
+      decoding={decoding}
+      fetchPriority={fetchPriority}
+      onError={() => setHasError(true)}
+    />
+  );
 }
 
 function ServiceImageSlider({ mediaImages, alt }) {
-  const [activeIndex, setActiveIndex] = useState(0);
   const [failedImages, setFailedImages] = useState([]);
   const availableImages = mediaImages.filter((image) => !failedImages.includes(image));
   const availableImageCount = availableImages.length;
-  const visibleImageIndex = availableImageCount > 0 ? activeIndex % availableImageCount : 0;
-
-  useEffect(() => {
-    if (availableImageCount <= 1) {
-      return undefined;
-    }
-
-    const sliderInterval = window.setInterval(() => {
-      setActiveIndex((currentIndex) => (currentIndex + 1) % availableImageCount);
-    }, 3000);
-
-    return () => window.clearInterval(sliderInterval);
-  }, [availableImageCount]);
 
   const handleImageError = (image) => {
     setFailedImages((currentImages) =>
@@ -156,23 +160,14 @@ function ServiceImageSlider({ mediaImages, alt }) {
 
   return (
     <div className="serviceImageSlider">
-      {availableImages.map((image, index) => (
-        <img
-          className={`serviceCardMedia ${index === visibleImageIndex ? "active" : ""}`}
-          src={image}
-          alt={`${alt} ${index + 1}`}
-          key={image}
-          onError={() => handleImageError(image)}
-        />
-      ))}
-
-      {availableImageCount > 1 && (
-        <div className="serviceSliderIndicators" aria-hidden="true">
-          {availableImages.map((image, index) => (
-            <span className={index === visibleImageIndex ? "active" : ""} key={image} />
-          ))}
-        </div>
-      )}
+      <img
+        className="serviceCardMedia active"
+        src={availableImages[0]}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onError={() => handleImageError(availableImages[0])}
+      />
     </div>
   );
 }
@@ -745,6 +740,166 @@ const translations = {
       "CURIOUS / NOT QUALIFIED": "Curioso / no calificado",
       "NEEDS REVIEW": "Necesita revision",
     },
+  },
+};
+
+const pageCopy = {
+  en: {
+    metaTitle: "Jesus Garcia LLC | Framing & Finish Carpentry in Jackson Hole",
+    metaDescription:
+      "Framing, finish carpentry, installation, remodeling and subcontractor support for Jackson Hole homeowners, businesses and builders.",
+    navServices: "Services",
+    navAbout: "Company",
+    navArea: "Service Area",
+    navEstimate: "Project Review",
+    talkToNova: "Talk to NOVA",
+    tagline: "Jackson Hole Carpentry",
+    heroTitle: "Framing & Finish Carpentry for Jackson Hole Projects",
+    heroText:
+      "Installation, remodeling and reliable subcontractor support for homeowners, businesses and builders.",
+    requestReview: "Start project review",
+    viewServices: "View our work",
+    notice: "Service in Jackson, Wyoming, and nearby communities.",
+    trustItems: ["Jackson, WY", "Residential & Commercial", "Interior & Exterior Work", "Bilingual Service EN / ES"],
+    projectProof: "Selected Work",
+    workTitle: "Selected Work",
+    workIntro:
+      "Real project photos from existing Jesus Garcia LLC media, presented without invented project names or locations.",
+    selectedWorkAlts: [
+      "Framing work in progress",
+      "Deck carpentry detail",
+      "Interior ceiling paneling installation",
+      "Remodeling carpentry work",
+      "Flooring installation detail",
+      "Door installation detail",
+    ],
+    whatWeDo: "Services",
+    servicesTitle: "Organized Carpentry Support",
+    servicesIntro:
+      "The core services remain visible below, grouped by the way homeowners, businesses and builders usually plan the work.",
+    serviceCards: [
+      { title: "Framing", description: "Wood framing support for walls, partitions, openings and structural preparation.", mediaImages: createServiceMediaImages("framing") },
+      { title: "Siding", description: "Exterior siding installation and repair.", mediaImages: createServiceMediaImages("siding") },
+      { title: "Decks", description: "Deck construction and installation.", mediaImages: createServiceMediaImages("decks") },
+      { title: "General finish carpentry", description: "Interior finish work, molding, decorative pieces, adjustments and final carpentry details.", mediaImages: createServiceMediaImages("finish-carpentry") },
+      { title: "Door Installation", description: "Installation and adjustment of interior and exterior doors.", mediaImages: createServiceMediaImages("doors") },
+      { title: "Window Installation", description: "Window installation and replacement.", mediaImages: createServiceMediaImages("windows") },
+      { title: "Interior ceiling paneling", description: "Ceiling panels, interior siding, wood or PVC paneling for decorative interior finishes.", mediaImages: createServiceMediaImages("ceiling-paneling") },
+      { title: "Flooring", description: "Flooring installation for residential and commercial projects.", mediaImages: createServiceMediaImages("flooring") },
+      { title: "Cabinets", description: "Installation of kitchen, bathroom and interior cabinets.", mediaImages: createServiceMediaImages("cabinets") },
+      { title: "Kitchens", description: "Kitchen remodeling and installation.", mediaImages: createServiceMediaImages("kitchens") },
+      { title: "Complete Remodeling", description: "Complete interior and exterior remodeling support.", mediaImages: createServiceMediaImages("remodeling") },
+      { title: "Subcontractor support for builders", description: "Support for builders and general contractors with installation, carpentry, finishes, siding, decks, doors, windows, cabinets, flooring and remodeling work.", mediaImages: createServiceMediaImages("subcontractor") },
+    ],
+    serviceCategories: [
+      { title: "Framing & Exterior Carpentry", services: ["Framing", "Siding", "Decks"] },
+      { title: "Finish Carpentry & Installations", services: ["General finish carpentry", "Door Installation", "Window Installation", "Interior ceiling paneling"] },
+      { title: "Interior Installations", services: ["Flooring", "Cabinets", "Kitchens"] },
+      { title: "Remodeling & Builder Support", services: ["Complete Remodeling", "Subcontractor support for builders"] },
+    ],
+    builderSupportLabel: "Builder Support",
+    builderSupportTitle: "Subcontractor Support for Active Jobsites",
+    builderSupportText:
+      "Jesus Garcia LLC supports builders and general contractors with framing, finish carpentry, installations, siding, decks, cabinets, flooring and remodeling scopes.",
+    builderSupportItems: ["Residential and commercial project support", "Interior and exterior carpentry scopes", "Clear coordination with property owners, builders and contractors"],
+    whoWeWorkWith: "About the Company",
+    fitTitle: "Jesus Garcia LLC",
+    fitText:
+      "Jesus Garcia LLC is a local installation, carpentry, remodeling and builder support company serving Jackson, WY and nearby areas. The company works with homeowners, businesses, property owners, builders and general contractors.",
+    serviceAreaLabel: "Service Area",
+    serviceAreaTitle: "Serving Jackson and Nearby Areas",
+    serviceAreaIntro: "Primary service area: Jackson, WY.",
+    serviceAreas: ["Alpine, WY", "Star Valley, WY", "Afton, WY", "Nearby areas"],
+    processLabel: "How We Work",
+    processTitle: "A Clear Process from Review to Final Details",
+    processIntro: "NOVA helps start the project review, then Jesus Garcia LLC can confirm the scope and coordinate the work.",
+    processSteps: [
+      ["Project Review", "Share the project type, location, timing and scope needs."],
+      ["Scope Confirmation", "Confirm the carpentry work, materials, access and jobsite expectations."],
+      ["Scheduling", "Coordinate timing with the contractor, remodeling company or property owner."],
+      ["Jobsite Execution", "Complete the approved carpentry scope with organized jobsite communication."],
+      ["Final Details", "Review final adjustments, installed pieces, decorative carpentry and finish items."],
+    ],
+    safetyLabel: "Professional Standards",
+    safetyTitle: "Safety, Clean Work and Jobsite Respect",
+    safetyIntro: "Professional carpentry support should protect the project, the people on site and the quality of the finished work.",
+    safetyItems: ["PPE and jobsite safety", "Clean and organized work", "Clear communication with contractors or property owners", "Quality-focused execution", "Respect for the jobsite"],
+    finalCtaTitle: "Start a Project Review with NOVA",
+    finalCtaText: "NOVA will help you share your project details, select the service you need and submit your request so the team can review it.",
+    footerServices: "Framing, finish carpentry, installation, interior ceiling paneling, remodeling and subcontractor support",
+    footerArea: "Jackson, WY and nearby areas",
+    footerNovaCta: "Talk to NOVA",
+    footerAlternativeContact: "Alternative contact: jesusgarciallccompany@gmail.com",
+    footerSendEmail: "Send email",
+  },
+  es: {
+    metaTitle: "Jesus Garcia LLC | Framing y carpinter\u00eda de acabado en Jackson Hole",
+    metaDescription: "Framing, carpinter\u00eda de acabado, instalaci\u00f3n, remodelaci\u00f3n y apoyo como subcontratista para proyectos en Jackson Hole.",
+    navServices: "Servicios",
+    navAbout: "Empresa",
+    navArea: "Zona de servicio",
+    navEstimate: "Revisi\u00f3n",
+    talkToNova: "Hablar con NOVA",
+    tagline: "Carpinter\u00eda en Jackson Hole",
+    heroTitle: "Framing y carpinter\u00eda de acabado para proyectos en Jackson Hole",
+    heroText: "Instalaci\u00f3n, remodelaci\u00f3n y apoyo confiable como subcontratista para propietarios, empresas y constructoras.",
+    requestReview: "Iniciar revisi\u00f3n del proyecto",
+    viewServices: "Ver nuestros trabajos",
+    notice: "Servicio en Jackson, Wyoming y comunidades cercanas.",
+    trustItems: ["Jackson, WY", "Residencial y comercial", "Trabajo interior y exterior", "Servicio biling\u00fce EN / ES"],
+    projectProof: "Trabajos seleccionados",
+    workTitle: "Trabajos seleccionados",
+    workIntro: "Fotos reales de proyectos tomadas del material existente de Jesus Garcia LLC, sin nombres ni ubicaciones inventadas.",
+    selectedWorkAlts: ["Trabajo de framing en proceso", "Detalle de carpinter\u00eda en deck", "Instalaci\u00f3n de revestimiento de cielo interior", "Trabajo de carpinter\u00eda en remodelaci\u00f3n", "Detalle de instalaci\u00f3n de pisos", "Detalle de instalaci\u00f3n de puerta"],
+    whatWeDo: "Servicios",
+    servicesTitle: "Apoyo de carpinter\u00eda organizado",
+    servicesIntro: "Los 12 servicios principales siguen visibles, agrupados seg\u00fan la forma en que propietarios, empresas y constructoras suelen planificar el trabajo.",
+    serviceCards: [
+      { title: "Framing", description: "Apoyo en estructuras de madera, muros, divisiones, aberturas y preparaci\u00f3n estructural.", mediaImages: createServiceMediaImages("framing") },
+      { title: "Siding", description: "Instalaci\u00f3n y reparaci\u00f3n de revestimiento exterior.", mediaImages: createServiceMediaImages("siding") },
+      { title: "Decks", description: "Construcci\u00f3n e instalaci\u00f3n de decks.", mediaImages: createServiceMediaImages("decks") },
+      { title: "Carpinter\u00eda de acabado general", description: "Acabados interiores, molduras, piezas decorativas, ajustes y detalles finales de carpinter\u00eda.", mediaImages: createServiceMediaImages("finish-carpentry") },
+      { title: "Instalaci\u00f3n de puertas", description: "Instalaci\u00f3n y ajuste de puertas interiores y exteriores.", mediaImages: createServiceMediaImages("doors") },
+      { title: "Instalaci\u00f3n de ventanas", description: "Instalaci\u00f3n y reemplazo de ventanas.", mediaImages: createServiceMediaImages("windows") },
+      { title: "Revestimiento de cielo interior", description: "Paneles, revestimiento interior, madera o PVC para acabados decorativos en cielos interiores.", mediaImages: createServiceMediaImages("ceiling-paneling") },
+      { title: "Pisos", description: "Instalaci\u00f3n de pisos para proyectos residenciales y comerciales.", mediaImages: createServiceMediaImages("flooring") },
+      { title: "Gabinetes", description: "Instalaci\u00f3n de gabinetes de cocina, ba\u00f1o y \u00e1reas interiores.", mediaImages: createServiceMediaImages("cabinets") },
+      { title: "Cocinas", description: "Remodelaci\u00f3n e instalaci\u00f3n de cocinas.", mediaImages: createServiceMediaImages("kitchens") },
+      { title: "Remodelaciones completas", description: "Apoyo para remodelaciones completas de interiores y exteriores.", mediaImages: createServiceMediaImages("remodeling") },
+      { title: "Apoyo como subcontratista", description: "Apoyo a constructoras y contratistas generales en instalaci\u00f3n, carpinter\u00eda, acabados, siding, decks, puertas, ventanas, gabinetes, pisos y remodelaci\u00f3n.", mediaImages: createServiceMediaImages("subcontractor") },
+    ],
+    serviceCategories: [
+      { title: "Framing y carpinter\u00eda exterior", services: ["Framing", "Siding", "Decks"] },
+      { title: "Carpinter\u00eda de acabado e instalaciones", services: ["Carpinter\u00eda de acabado general", "Instalaci\u00f3n de puertas", "Instalaci\u00f3n de ventanas", "Revestimiento de cielo interior"] },
+      { title: "Instalaciones interiores", services: ["Pisos", "Gabinetes", "Cocinas"] },
+      { title: "Remodelaci\u00f3n y apoyo a constructoras", services: ["Remodelaciones completas", "Apoyo como subcontratista"] },
+    ],
+    builderSupportLabel: "Apoyo a constructoras",
+    builderSupportTitle: "Apoyo como subcontratista para obras activas",
+    builderSupportText: "Jesus Garcia LLC apoya a constructoras y contratistas generales con framing, carpinter\u00eda de acabado, instalaciones, siding, decks, gabinetes, pisos y trabajos de remodelaci\u00f3n.",
+    builderSupportItems: ["Apoyo para proyectos residenciales y comerciales", "Alcances de carpinter\u00eda interior y exterior", "Coordinaci\u00f3n clara con propietarios, constructoras y contratistas"],
+    whoWeWorkWith: "Sobre la empresa",
+    fitTitle: "Jesus Garcia LLC",
+    fitText: "Jesus Garcia LLC es una compa\u00f1\u00eda local de instalaci\u00f3n, carpinter\u00eda, remodelaci\u00f3n y apoyo a constructoras que atiende Jackson, WY y \u00e1reas cercanas. La compa\u00f1\u00eda trabaja con propietarios, empresas, due\u00f1os de propiedades, constructoras y contratistas generales.",
+    serviceAreaLabel: "Zona de servicio",
+    serviceAreaTitle: "Servicio en Jackson y \u00e1reas cercanas",
+    serviceAreaIntro: "Zona principal de servicio: Jackson, WY.",
+    serviceAreas: ["Alpine, WY", "Star Valley, WY", "Afton, WY", "\u00c1reas cercanas"],
+    processLabel: "C\u00f3mo trabajamos",
+    processTitle: "Un proceso claro desde la revisi\u00f3n hasta los detalles finales",
+    processIntro: "NOVA ayuda a iniciar la revisi\u00f3n del proyecto; despu\u00e9s Jesus Garcia LLC puede confirmar el alcance y coordinar el trabajo.",
+    processSteps: [["Revisi\u00f3n del proyecto", "Comparte el tipo de proyecto, ubicaci\u00f3n, tiempo y alcance necesario."], ["Confirmaci\u00f3n del alcance", "Se confirma el trabajo de carpinter\u00eda, materiales, acceso y expectativas de obra."], ["Programaci\u00f3n", "Se coordinan fechas con el contratista, la compa\u00f1\u00eda de remodelaci\u00f3n o el propietario."], ["Ejecuci\u00f3n en obra", "Se completa el alcance aprobado con comunicaci\u00f3n organizada en el sitio."], ["Detalles finales", "Se revisan ajustes finales, piezas instaladas, carpinter\u00eda decorativa y acabados."]],
+    safetyLabel: "Est\u00e1ndares profesionales",
+    safetyTitle: "Seguridad, trabajo limpio y respeto por la obra",
+    safetyIntro: "El apoyo profesional de carpinter\u00eda debe proteger el proyecto, a las personas en obra y la calidad del trabajo terminado.",
+    safetyItems: ["Uso de EPP y seguridad en obra", "Trabajo limpio y organizado", "Comunicaci\u00f3n clara con contratistas o propietarios", "Ejecuci\u00f3n enfocada en calidad", "Respeto por el sitio de trabajo"],
+    finalCtaTitle: "Inicia una revisi\u00f3n del proyecto con NOVA",
+    finalCtaText: "NOVA te ayudar\u00e1 a compartir los detalles de tu proyecto, seleccionar el servicio que necesitas y dejar registrada tu solicitud para que el equipo pueda revisarla.",
+    footerServices: "Framing, carpinter\u00eda de acabado, instalaci\u00f3n, revestimiento de cielo interior, remodelaci\u00f3n y apoyo a constructoras",
+    footerArea: "Jackson, WY y \u00e1reas cercanas",
+    footerNovaCta: "Hablar con NOVA",
+    footerAlternativeContact: "Contacto alternativo: jesusgarciallccompany@gmail.com",
+    footerSendEmail: "Enviar correo",
   },
 };
 
@@ -1563,7 +1718,9 @@ function App() {
   const emergencyEmailRef = useRef(null);
 
   const text = translations[language];
+  const pageText = pageCopy[language];
   const t = (key) => text[key];
+  const pt = (key) => pageText[key];
   const currentLanguage = language === "en" ? "en" : "es";
   const effectiveNovaLanguage = novaConversationLanguage || currentLanguage;
   const novaFormText = translations[effectiveNovaLanguage] || text;
@@ -1578,6 +1735,7 @@ function App() {
   const isNovaSmartModeActive =
     novaSmartModeEnabled && !novaSmartFallbackActive && !quoteMode;
   const isNovaEmergencyModeActive = !quoteMode && novaSmartFallbackActive;
+  const serviceCardsByTitle = new Map(pageText.serviceCards.map((service) => [service.title, service]));
 
   const trackNovaLeadProgress = (leadData = novaLeadData, response = {}) => {
     const safeParams = getSafeNovaLeadMetaParams(leadData, response);
@@ -2018,6 +2176,42 @@ function App() {
   useEffect(() => {
     novaConversationLanguageRef.current = novaConversationLanguage;
   }, [novaConversationLanguage]);
+
+  useEffect(() => {
+    const pageDocument = window.document;
+
+    pageDocument.documentElement.setAttribute("lang", currentLanguage);
+
+    const title = pageDocument.querySelector("title");
+    if (title) {
+      title.replaceChildren(pageDocument.createTextNode(pageText.metaTitle));
+    }
+
+    const description = pageDocument.querySelector('meta[name="description"]');
+    if (description) {
+      description.setAttribute("content", pageText.metaDescription);
+    }
+
+    const ogTitle = pageDocument.querySelector('meta[property="og:title"]');
+    if (ogTitle) {
+      ogTitle.setAttribute("content", pageText.metaTitle);
+    }
+
+    const ogDescription = pageDocument.querySelector('meta[property="og:description"]');
+    if (ogDescription) {
+      ogDescription.setAttribute("content", pageText.metaDescription);
+    }
+
+    const twitterTitle = pageDocument.querySelector('meta[name="twitter:title"]');
+    if (twitterTitle) {
+      twitterTitle.setAttribute("content", pageText.metaTitle);
+    }
+
+    const twitterDescription = pageDocument.querySelector('meta[name="twitter:description"]');
+    if (twitterDescription) {
+      twitterDescription.setAttribute("content", pageText.metaDescription);
+    }
+  }, [currentLanguage, pageText.metaDescription, pageText.metaTitle]);
 
   useEffect(
     () => () => {
@@ -3220,106 +3414,166 @@ function App() {
           <MediaImage
             className="logoMedia"
             src={CLIENT_LOGO}
-            alt=""
+            alt="Jesus Garcia LLC"
           />
-          <span>Jesús García LLC</span>
+          <span>Jesus Garcia LLC</span>
         </div>
 
-        <nav>
-          <a href="#services">{t("navServices")}</a>
-          <a href="#about">{t("navAbout")}</a>
-          <a href="#service-area">{t("navArea")}</a>
-          <a href="#estimate">{t("navEstimate")}</a>
+        <nav aria-label="Primary navigation">
+          <a href="#work">{pt("workTitle")}</a>
+          <a href="#services">{pt("navServices")}</a>
+          <a href="#about">{pt("navAbout")}</a>
+          <a href="#service-area">{pt("navArea")}</a>
+          <a href="#estimate">{pt("navEstimate")}</a>
         </nav>
 
         <div className="headerActions">
-          <button className="languageButton" onClick={toggleLanguage}>
-            🌐 EN / ES
+          <button className="languageButton" onClick={toggleLanguage} type="button">
+            EN / ES
           </button>
 
-          <button className="headerButton" onClick={openNovaWidget}>
-            {t("talkToNova")}
+          <button className="headerButton" onClick={openNovaWidget} type="button">
+            {pt("talkToNova")}
           </button>
         </div>
       </header>
 
+      <main>
       <section className="hero">
         <MediaImage
           className="heroMedia"
           src={CLIENT_HERO}
-          alt="Jesús García LLC project"
+          alt="Real carpentry project by Jesus Garcia LLC"
+          decoding="async"
+          fetchPriority="high"
         />
 
         <div className="heroContent">
-          <p className="tagline">{t("tagline")}</p>
+          <p className="tagline">{pt("tagline")}</p>
 
-          <h1>{t("heroTitle")}</h1>
+          <h1>{pt("heroTitle")}</h1>
 
-          <p className="heroText">{t("heroText")}</p>
+          <p className="heroText">{pt("heroText")}</p>
 
           <div className="heroButtons">
-            <button onClick={openQuoteRequest}>{t("requestReview")}</button>
+            <button onClick={openQuoteRequest} type="button">{pt("requestReview")}</button>
             <a className="secondaryButton" href="#services">
-              {t("viewServices")}
+              {pt("viewServices")}
             </a>
           </div>
 
-          <p className="notice">{t("notice")}</p>
+          <p className="notice">{pt("notice")}</p>
         </div>
 
       </section>
 
       <section className="trustStrip" aria-label="Trust highlights">
-        {text.trustItems.map((item) => (
+        {pageText.trustItems.map((item) => (
           <div className="trustItem" key={item}>
             {item}
           </div>
         ))}
       </section>
 
-      <section id="services" className="section servicesSection">
+      <section id="work" className="section workSection">
         <div className="sectionIntro">
-          <p className="sectionLabel">{t("whatWeDo")}</p>
-          <h2>{t("servicesTitle")}</h2>
-          <p>{t("servicesIntro")}</p>
+          <p className="sectionLabel">{pt("projectProof")}</p>
+          <h2>{pt("workTitle")}</h2>
+          <p>{pt("workIntro")}</p>
         </div>
 
-        <div className="grid">
-          {text.serviceCards.map(({ title, description, mediaImages }, index) => (
-            <div
-              className={`card ${activeServiceCard === index ? "active" : ""}`}
-              key={title}
-              role="button"
-              tabIndex={0}
-              aria-expanded={activeServiceCard === index}
-              onClick={() =>
-                setActiveServiceCard((currentIndex) => (currentIndex === index ? null : index))
-              }
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  setActiveServiceCard((currentIndex) =>
-                    currentIndex === index ? null : index,
-                  );
-                }
-              }}
-            >
-              <ServiceImageSlider mediaImages={mediaImages} alt={title} />
-              <div className="serviceCardContent">
-                <h3>{title}</h3>
-                <p className="serviceDescription">{description}</p>
-              </div>
-            </div>
+        <div className="selectedWorkGrid">
+          {selectedWorkImages.map((image, index) => (
+            <MediaImage
+              className="selectedWorkImage"
+              src={image}
+              alt={pageText.selectedWorkAlts[index]}
+              loading="lazy"
+              decoding="async"
+              key={image}
+            />
           ))}
+        </div>
+      </section>
+
+      <section id="services" className="section servicesSection">
+        <div className="sectionIntro">
+          <p className="sectionLabel">{pt("whatWeDo")}</p>
+          <h2>{pt("servicesTitle")}</h2>
+          <p>{pt("servicesIntro")}</p>
+        </div>
+
+        <div className="serviceCategoryGrid">
+          {pageText.serviceCategories.map((category, categoryIndex) => (
+            <section className="serviceCategory" key={category.title} aria-labelledby={`service-category-${categoryIndex}`}>
+              <h3 id={`service-category-${categoryIndex}`}>{category.title}</h3>
+
+              <div className="serviceList">
+                {category.services.map((serviceTitle) => {
+                  const service = serviceCardsByTitle.get(serviceTitle);
+                  const serviceIndex = pageText.serviceCards.findIndex((item) => item.title === serviceTitle);
+
+                  if (!service) {
+                    return null;
+                  }
+
+                  return (
+                    <div
+                      className={`card ${activeServiceCard === serviceIndex ? "active" : ""}`}
+                      key={service.title}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={activeServiceCard === serviceIndex}
+                      onClick={() =>
+                        setActiveServiceCard((currentIndex) =>
+                          currentIndex === serviceIndex ? null : serviceIndex,
+                        )
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setActiveServiceCard((currentIndex) =>
+                            currentIndex === serviceIndex ? null : serviceIndex,
+                          );
+                        }
+                      }}
+                    >
+                      <ServiceImageSlider mediaImages={service.mediaImages} alt={service.title} />
+                      <div className="serviceCardContent">
+                        <h4>{service.title}</h4>
+                        <p className="serviceDescription">{service.description}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      </section>
+
+      <section className="section builderSupportSection">
+        <div className="builderSupportContent">
+          <div>
+            <p className="sectionLabel">{pt("builderSupportLabel")}</p>
+            <h2>{pt("builderSupportTitle")}</h2>
+            <p>{pt("builderSupportText")}</p>
+          </div>
+
+          <div className="builderSupportList">
+            {pageText.builderSupportItems.map((item) => (
+              <div key={item}>{item}</div>
+            ))}
+          </div>
         </div>
       </section>
 
       <section id="about" className="section fitSection">
         <div className="fitContent">
           <div>
-            <p className="sectionLabel">{t("whoWeWorkWith")}</p>
-            <h2>{t("fitTitle")}</h2>
-            <p>{t("fitText")}</p>
+            <p className="sectionLabel">{pt("whoWeWorkWith")}</p>
+            <h2>{pt("fitTitle")}</h2>
+            <p>{pt("fitText")}</p>
           </div>
         </div>
 
@@ -3327,13 +3581,13 @@ function App() {
 
       <section id="service-area" className="section serviceAreaSection">
         <div className="sectionIntro">
-          <p className="sectionLabel">{t("serviceAreaLabel")}</p>
-          <h2>{t("serviceAreaTitle")}</h2>
-          <p>{t("serviceAreaIntro")}</p>
+          <p className="sectionLabel">{pt("serviceAreaLabel")}</p>
+          <h2>{pt("serviceAreaTitle")}</h2>
+          <p>{pt("serviceAreaIntro")}</p>
         </div>
 
         <div className="serviceAreaGrid">
-          {text.serviceAreas.map((area) => (
+          {pageText.serviceAreas.map((area) => (
             <div key={area}>{area}</div>
           ))}
         </div>
@@ -3341,13 +3595,13 @@ function App() {
 
       <section id="process" className="section processSection">
         <div className="sectionIntro">
-          <p className="sectionLabel">{t("processLabel")}</p>
-          <h2>{t("processTitle")}</h2>
-          <p>{t("processIntro")}</p>
+          <p className="sectionLabel">{pt("processLabel")}</p>
+          <h2>{pt("processTitle")}</h2>
+          <p>{pt("processIntro")}</p>
         </div>
 
         <div className="processGrid">
-          {text.processSteps.map(([title, description], index) => (
+          {pageText.processSteps.map(([title, description], index) => (
             <div className="processStep" key={title}>
               <span>{index + 1}</span>
               <h3>{title}</h3>
@@ -3360,13 +3614,13 @@ function App() {
       <section id="safety" className="section safetySection">
         <div className="safetyContent">
           <div>
-            <p className="sectionLabel">{t("safetyLabel")}</p>
-            <h2>{t("safetyTitle")}</h2>
-            <p>{t("safetyIntro")}</p>
+            <p className="sectionLabel">{pt("safetyLabel")}</p>
+            <h2>{pt("safetyTitle")}</h2>
+            <p>{pt("safetyIntro")}</p>
           </div>
 
           <div className="safetyList">
-            {text.safetyItems.map((item) => (
+            {pageText.safetyItems.map((item) => (
               <div key={item}>{item}</div>
             ))}
           </div>
@@ -3374,27 +3628,28 @@ function App() {
       </section>
 
       <section id="estimate" className="finalCta">
-        <h2>{t("finalCtaTitle")}</h2>
-        <p>{t("finalCtaText")}</p>
-        <button onClick={openNovaWidget}>{t("talkToNova")}</button>
+        <h2>{pt("finalCtaTitle")}</h2>
+        <p>{pt("finalCtaText")}</p>
+        <button onClick={openNovaWidget} type="button">{pt("talkToNova")}</button>
       </section>
+      </main>
 
       <footer className="footer">
         <div>
-          <strong>Jesús García LLC</strong>
-          <p>{t("footerServices")}</p>
-          <p>{t("footerArea")}</p>
+          <strong>Jesus Garcia LLC</strong>
+          <p>{pt("footerServices")}</p>
+          <p>{pt("footerArea")}</p>
           <div className="footerAlternativeContact">
-            <span>{t("footerAlternativeContact")}</span>
+            <span>{pt("footerAlternativeContact")}</span>
             <a href="mailto:jesusgarciallccompany@gmail.com">
-              {t("footerSendEmail")}
+              {pt("footerSendEmail")}
             </a>
           </div>
         </div>
 
         <div>
           <button className="footerNovaButton" onClick={openNovaWidget}>
-            {t("footerNovaCta")}
+            {pt("footerNovaCta")}
           </button>
         </div>
       </footer>
